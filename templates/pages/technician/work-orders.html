@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Work Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/tables.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="active"><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li><a href="./inspections.html"><i class="bi bi-clipboard-check"></i> Inspections</a></li>
+            <li><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Work Orders</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Technician / Work Orders</span>
+                    <h1 class="dashboard-title">Work Orders</h1>
+                </div>
+                <div class="d-flex gap-2">
+                    <select id="woFilter" class="form-select form-select-sm"
+                        style="width:160px;background:rgba(255,255,255,.05);border-color:var(--border-color);">
+                        <option value="all">All Status</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                    <input type="text" id="woSearch" class="form-control form-control-sm"
+                        style="width:200px;background:rgba(255,255,255,.05);border-color:var(--border-color);"
+                        placeholder="Search orders...">
+                </div>
+            </div>
+            <div class="card border-0 rounded-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="workOrdersTable">
+                            <thead>
+                                <tr>
+                                    <th>WO ID</th>
+                                    <th>Vehicle</th>
+                                    <th>Service</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-container"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/pagination.js"></script>
+    <script src="../../assets/js/main.js?v=7"></script>
+    <script>
+        const userId = "{{ user_data.user_id }}";
+        const userRole = "{{ user_data.role }}";
+
+        async function loadWorkOrders(page = 1) {
+            const status = document.getElementById('woFilter').value;
+            const search = document.getElementById('woSearch').value;
+            const tbody = document.querySelector('#workOrdersTable tbody');
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
+            try {
+                const res = await fetch(`/api/work-orders?page=${page}&status=${status}&q=${search}&_t=${Date.now()}`);
+                const data = await res.json();
+                const orders = data.work_orders || data.data || (Array.isArray(data) ? data : []);
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No work orders found.</td></tr>';
+                    renderPagination('pagination-container', null);
+                    return;
+                }
+                tbody.innerHTML = orders.map(wo => `
+                    <tr>
+                        <td class="fw-bold text-primary">WO-${wo.JobCard_ID}</td>
+                        <td>${wo.Make} ${wo.Model}<br><small class="text-muted">${wo.PlateNumber}</small></td>
+                        <td>${wo.service_type || '—'}</td>
+                        <td><span class="status-badge ${wo.Status.toLowerCase().replace(' ', '-')}">${wo.Status}</span></td>
+                        <td><a href="./work-order-details.html?id=${wo.JobCard_ID}" class="btn btn-sm btn-outline-primary px-3">Open Details</a></td>
+                    </tr>
+                `).join('');
+                renderPagination('pagination-container', data, (newPage) => loadWorkOrders(newPage));
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error loading data from database.</td></tr>';
+            }
+        }
+
+        document.getElementById('woFilter').addEventListener('change', () => loadWorkOrders(1));
+        document.getElementById('woSearch').addEventListener('input', () => loadWorkOrders(1));
+        document.addEventListener('DOMContentLoaded', () => loadWorkOrders(1));
+    </script>
+</body>
+
+</html>

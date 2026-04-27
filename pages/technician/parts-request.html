@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Parts Request</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li><a href="./inspections.html"><i class="bi bi-clipboard-check"></i> Inspections</a></li>
+            <li class="active"><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Parts Request</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Technician / Parts</span>
+                    <h1 class="dashboard-title">Parts Requests</h1>
+                </div>
+            </div>
+            <div class="row g-4">
+                <!-- Request Form -->
+                <div class="col-lg-5">
+                    <div class="card border-0 rounded-4 p-4">
+                        <h6 class="fw-bold mb-4">New Parts Request</h6>
+                        <form id="partsReqForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Work Order</label>
+                                <select class="form-select" id="partsWoSelect" name="jobcard_id" required>
+                                    <option value="">Loading work orders...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Part Name</label>
+                                <select class="form-select" id="partsItemSelect" name="item_id" required>
+                                    <option value="">Select a part...</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Quantity</label>
+                                <input type="number" class="form-control" name="quantity" id="partsQty" min="1" value="1" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-send me-2"></i> Submit Request
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <!-- My Requests -->
+                <div class="col-lg-7">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">My Requests</h6>
+                            <button class="btn btn-link btn-sm text-decoration-none" onclick="loadMyRequests()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0" id="partsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Work Order</th>
+                                            <th>Part</th>
+                                            <th>Qty</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4">
+                                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                                Loading...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=20260425_v11"></script>
+    <script>
+        const partsWoSelect = document.getElementById('partsWoSelect');
+        const partsItemSelect = document.getElementById('partsItemSelect');
+        const partsTable = document.getElementById('partsTable').querySelector('tbody');
+
+        // Load work orders assigned to this technician
+        async function loadWorkOrders() {
+            try {
+                const res = await fetch('/api/work-orders');
+                const data = await res.json();
+                const orders = data.work_orders || data;
+                partsWoSelect.innerHTML = '<option value="">Select work order...</option>' +
+                    orders.map(o => `<option value="${o.JobCard_ID}">WO-${o.JobCard_ID} — ${o.Make || ''} ${o.Model || ''}</option>`).join('');
+            } catch (err) {
+                console.error('Error loading work orders:', err);
+                partsWoSelect.innerHTML = '<option value="">Failed to load</option>';
+            }
+        }
+
+        // Load inventory items as part options
+        async function loadInventory() {
+            try {
+                const res = await fetch('/api/inventory');
+                const items = await res.json();
+                partsItemSelect.innerHTML = '<option value="">Select a part...</option>' +
+                    items.map(i => `<option value="${i.Item_ID}">${i.Name} (Stock: ${i.StockQty})</option>`).join('');
+            } catch (err) {
+                console.error('Error loading inventory:', err);
+                partsItemSelect.innerHTML = '<option value="">Failed to load</option>';
+            }
+        }
+
+        // Load my parts requests
+        async function loadMyRequests() {
+            try {
+                const res = await fetch('/api/parts-requests?_t=' + Date.now());
+                if (!res.ok) throw new Error('Server error');
+                const data = await res.json();
+
+                if (!data.length) {
+                    partsTable.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No parts requests yet.</td></tr>';
+                    return;
+                }
+
+                partsTable.innerHTML = data.map(p => {
+                    const status = p.Status || 'Pending';
+                    const badgeClass = status.toLowerCase();
+                    return `
+                        <tr>
+                            <td class="fw-bold">PR-${p.id}</td>
+                            <td>${p.ItemName || 'Unknown Part'}</td>
+                            <td>${p.Quantity}</td>
+                            <td><span class="status-badge ${badgeClass}">${status}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading parts requests:', err);
+                partsTable.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger">Failed to load requests.</td></tr>';
+            }
+        }
+
+        // Submit form
+        document.getElementById('partsReqForm').addEventListener('submit', async function(e) {
+            if (this.dataset.submitting === 'true') {
+                e.preventDefault();
+                return;
+            }
+            e.preventDefault();
+            this.dataset.submitting = 'true';
+
+            const jobcard_id = partsWoSelect.value;
+            const item_id = partsItemSelect.value;
+            const quantity = document.getElementById('partsQty').value;
+
+            if (!jobcard_id || !item_id || !quantity) {
+                toast('Please fill all fields', 'error');
+                return;
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Submitting...';
+
+            try {
+                const res = await fetch('/api/parts-requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobcard_id, item_id, quantity: parseInt(quantity) })
+                });
+
+                if (res.ok) {
+                    toast('Parts request submitted!', 'success');
+                    this.reset();
+                    setTimeout(loadMyRequests, 500);
+                } else {
+                    const err = await res.json();
+                    toast(err.error || 'Failed to submit request', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                toast('Network error', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                document.getElementById('partsReqForm').dataset.submitting = 'false';
+
+            }
+        });
+
+        // Init
+        loadWorkOrders();
+        loadInventory();
+        loadMyRequests();
+
+        // Auto-refresh every 30 seconds for status updates
+        setInterval(loadMyRequests, 30000);
+    </script>
+</body>
+
+</html>

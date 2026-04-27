@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Master Executive Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Light Mode Specific Enhancements */
+        [data-theme="light"] .executive-kpi {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        [data-theme="light"] .executive-kpi .value {
+            color: var(--text-color);
+        }
+        [data-theme="light"] .executive-kpi .label {
+            color: var(--sidebar-text);
+            font-weight: 600;
+        }
+        [data-theme="light"] .card {
+            background: #fff;
+            border: 1px solid var(--border-color) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        [data-theme="light"] .table thead th {
+            color: var(--sidebar-text);
+            border-bottom: 2px solid var(--border-color);
+        }
+        [data-theme="light"] .text-light {
+            color: var(--text-color) !important;
+        }
+        [data-theme="light"] .text-muted {
+            color: #64748b !important;
+            opacity: 1;
+        }
+
+        .executive-kpi {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .executive-kpi:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: var(--glow-primary);
+        }
+        .executive-kpi .icon-bg {
+            position: absolute;
+            right: -10px;
+            bottom: -20px;
+            font-size: 6rem;
+            opacity: 0.05;
+        }
+        .executive-kpi .label {
+            color: #9ca3af;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        .executive-kpi .value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+        .executive-kpi .trend {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .executive-kpi .trend.up { color: #10b981; }
+        .executive-kpi .trend.down { color: #ef4444; }
+    </style>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./top-manager-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i> IVHEMMS</a>
+        <div class="sidebar-heading">Executive</div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="./top-manager-dashboard.html"><i class="bi bi-bar-chart-fill"></i> Global Overview</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Top Manager</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile" data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName">Admin</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4 fade-in">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="dashboard-title m-0">Top Manager Dashboard</h1>
+                    <span class="text-muted small">Real-time cross-department metrics</span>
+                </div>
+            </div>
+
+            <!-- Global KPIs -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="executive-kpi">
+                        <i class="bi bi-cash-stack icon-bg"></i>
+                        <div class="label">Total Revenue</div>
+                        <div class="value" id="kpiRevenue">$...</div>
+                        <div class="trend up" id="kpiRevTrend">Loading...</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="executive-kpi">
+                        <i class="bi bi-tools icon-bg"></i>
+                        <div class="label">Active Work Orders</div>
+                        <div class="value" id="kpiWo">...</div>
+                        <div class="trend text-warning" id="kpiWoTrend">Loading...</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="executive-kpi">
+                        <i class="bi bi-person-fill icon-bg"></i>
+                        <div class="label">Total System Users</div>
+                        <div class="value" id="kpiUsers">...</div>
+                        <div class="trend up" id="kpiUsersTrend">Loading...</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <div class="executive-kpi">
+                        <i class="bi bi-box-seam icon-bg"></i>
+                        <div class="label">Pending Approvals</div>
+                        <div class="value" id="kpiApprovals">...</div>
+                        <div class="trend text-warning" id="kpiApprovalsTrend">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <!-- 1. Strategic Appointments (Client Pipelines) -->
+                <div class="col-lg-12">
+                    <div class="card border-0 rounded-4 shadow-sm">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold fs-5 mb-0"><i class="bi bi-calendar-event me-2 text-info"></i>System Appointments (Client Pipeline)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Date</th>
+                                            <th>Client</th>
+                                            <th>Service</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="apptTableBody">
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">Retrieving booking records...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Executive Intelligence -->
+            <div class="row g-4 mt-2">
+                <!-- Finance Hub (Finance Manager Work) -->
+                <div class="col-lg-12">
+                    <div class="card border-0 rounded-4 shadow-sm mb-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold fs-5 mb-0"><i class="bi bi-currency-exchange me-2 text-success"></i>Global Finance Ledger</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice</th>
+                                            <th>Account</th>
+                                            <th>Revenue</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="financeTableBody">
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">Synchronizing finance records...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operations & Technician Work -->
+                <div class="col-lg-12">
+                    <div class="card border-0 rounded-4 shadow-sm h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold fs-5 mb-0"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>Workshop Live Monitor</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Job</th>
+                                            <th>Issue</th>
+                                            <th>Technician</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="techTableBody">
+                                        <tr><td colspan="4" class="text-center py-4 text-muted">Connecting to workfloor stats...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=8"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <script>
+
+        async function loadData() {
+            console.log("Master Hub: Force-Syncing Global Metrics...");
+            try {
+                const ts = Date.now();
+                const endpoints = [
+                    { id: 'invoices', url: `/api/admin/invoices?page_size=1000&_t=${ts}` },
+                    { id: 'wos',      url: `/api/work-orders?page_size=1000&_t=${ts}` },
+                    { id: 'users',    url: `/api/users?page_size=1000&_t=${ts}` },
+                    { id: 'inv',      url: `/api/inventory?page_size=1000&_t=${ts}` },
+                    { id: 'appts',    url: `/api/admin/appointments?page_size=1000&_t=${ts}` }
+                ];
+
+                const results = await Promise.all(endpoints.map(e => 
+                    fetch(e.url).then(r => r.ok ? r.json() : null).catch(() => null)
+                ));
+
+                const [invoicesData, wosData, usersData, invData, apptData] = results;
+
+                // Extractions
+                // Sorting for "Latest First"
+                const invoices = ((invoicesData && invoicesData.data) || []).sort((a,b) => (b.Invoice_ID||0) - (a.Invoice_ID||0));
+                const wos      = ((wosData && wosData.work_orders) || (Array.isArray(wosData)?wosData:[])).sort((a,b) => (b.JobCard_ID||0) - (a.JobCard_ID||0));
+                const users    = ((usersData && usersData.data) || (Array.isArray(usersData)?usersData:[])).sort((a,b) => (b.user_id||0) - (a.user_id||0));
+                const invItems = (invData && invData.data) || [];
+                const appts    = ((apptData && apptData.data) || []).sort((a,b) => (b.Appointment_ID||0) - (a.Appointment_ID||0));
+
+                console.log("Sync Complete. Rendering UI...");
+                
+                // Render
+                try { renderKPIs(invoicesData, wosData, usersData, invData); } catch(e) { }
+                try { renderFinanceTable(invoices); } catch(e) { }
+                try { renderWorkshopTable(wos); } catch(e) { }
+                try { renderInventoryMonitor(invItems); } catch(e) { }
+                try { renderApptsTable(appts); } catch(e) { }
+
+            } catch(e) {
+                console.error("Master Hub Sync Failure:", e);
+            }
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadData, 300000);
+
+        function renderKPIs(invData, wosData, usersData, inventoryData) {
+            // 1. Revenue (Global Paid Total)
+            const revenue = invData?.revenue_collected || 0;
+            const revEl = document.getElementById('kpiRevenue');
+            if(revEl) revEl.textContent = `EGP ${parseFloat(revenue).toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            
+            // 2. Active Load (Global Job Count)
+            const woEl = document.getElementById('kpiWo');
+            if(woEl) {
+                woEl.textContent = wosData?.total_items || 0;
+            }
+
+            // 3. System Users (Global User Count)
+            const uEl = document.getElementById('kpiUsers');
+            if(uEl) {
+                uEl.textContent = usersData?.total_items || 0;
+            }
+
+            // 4. Low Stock / Critical Alerts (Global Count)
+            const appEl = document.getElementById('kpiApprovals');
+            if(appEl) {
+                appEl.textContent = inventoryData?.low_stock_count || 0;
+            }
+
+            // Trends (Static descriptive labels)
+            const trends = {
+                'kpiRevTrend': '<i class="bi bi-check-circle-fill text-success"></i> Global Paid Revenue',
+                'kpiWoTrend': '<i class="bi bi-activity text-primary"></i> Current Station Load',
+                'kpiUsersTrend': '<i class="bi bi-people-fill text-info"></i> All Roles Combined',
+                'kpiApprovalsTrend': '<i class="bi bi-exclamation-triangle-fill text-danger"></i> Low Stock Items'
+            };
+            Object.entries(trends).forEach(([id, html]) => {
+                const el = document.getElementById(id);
+                if(el) el.innerHTML = html;
+            });
+        }
+
+        function renderFinanceTable(invoices) {
+            const container = document.getElementById('financeTableBody');
+            if(!container) return;
+            if(!invoices.length) {
+                container.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No finance records.</td></tr>';
+                return;
+            }
+            container.innerHTML = invoices.slice(0, 5).map(i => {
+                const id = i.Invoice_ID || i.invoice_id || '—';
+                const client = i.ClientName || i.ClientEmail || 'Guest';
+                const amt = i.Total || i.total || 0;
+                const status = (i.Status || i.status || 'Unpaid').toString();
+                const d = i.InvoiceDate || i.DueDate || '—';
+                return `
+                <tr class="list-hover">
+                    <td><span class="badge bg-dark border border-secondary">#${id}</span></td>
+                    <td class="fw-semibold text-light">${client}</td>
+                    <td class="fw-bold text-success">EGP ${parseFloat(amt).toLocaleString()}</td>
+                    <td><span class="badge bg-${status.toLowerCase()==='paid'?'success':'warning'} bg-opacity-10 text-${status.toLowerCase()==='paid'?'success':'warning'} border border-${status.toLowerCase()==='paid'?'success':'warning'}">${status}</span></td>
+                    <td class="text-muted small">${d}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderWorkshopTable(wos) {
+            const container = document.getElementById('techTableBody');
+            if(!container) return;
+            if(!wos.length) {
+                container.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No active workshop items.</td></tr>';
+                return;
+            }
+            container.innerHTML = wos.slice(0, 5).map(w => {
+                const id = w.JobCard_ID || w.jobcard_id || '—';
+                const issues = (w.ReportedIssues || w.reported_issues || 'Maintenance').substring(0,25);
+                const tech = w.TechnicianName || w.technician_name || 'Unassigned';
+                const status = w.Status || w.status || 'Pending';
+                const statusSlug = status.toLowerCase().replace(/\s+/g, '-');
+                return `
+                <tr class="list-hover">
+                    <td class="text-muted small">#${id}</td>
+                    <td class="text-light">${issues}...</td>
+                    <td class="fw-semibold" style="color:var(--primary-color)">${tech}</td>
+                    <td><span class="status-badge ${statusSlug}">${status}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderApptsTable(appts) {
+            const container = document.getElementById('apptTableBody');
+            if(!container) return;
+            if(!appts.length) {
+                container.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No scheduled bookings.</td></tr>';
+                return;
+            }
+            container.innerHTML = appts.slice(0, 8).map(a => {
+                const id = a.Appointment_ID || a.appointment_id || '—';
+                const dRaw = a.StartTime || a.starttime || '';
+                const dStr = dRaw ? dRaw.split('T')[0] : (dRaw.includes(' ') ? dRaw.split(' ')[0] : '—');
+                const client = a.ClientName || a.firstname || 'Guest';
+                const type = a.service_type || 'Service';
+                const status = a.Status || a.status || 'Scheduled';
+                const statusSlug = status.trim().toLowerCase().replace(/\s+/g, '-');
+                return `
+                <tr class="list-hover">
+                    <td><span class="text-muted small">#${id}</span></td>
+                    <td class="text-info fw-semibold">${dStr}</td>
+                    <td class="fw-semibold text-light">${client}</td>
+                    <td class="text-muted">${type}</td>
+                    <td><span class="status-badge ${statusSlug}">${status}</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderInventoryMonitor(items) {
+            const container = document.getElementById('inventoryWaitList');
+            if(!container) return;
+            if(!items.length) {
+                container.innerHTML = '<div class="text-center py-4 text-muted">Warehouse empty.</div>';
+                return;
+            }
+            container.innerHTML = `
+                <div class="list-group list-group-flush bg-transparent">
+                    ${items.slice(0, 5).map(i => `
+                        <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 px-0 py-2">
+                            <div>
+                                <div class="fw-bold small text-white">${i.Name || i.name}</div>
+                                <div class="text-muted" style="font-size: 0.65rem">SKU: ${i.ItemNumber || i.itemnumber}</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold ${ (i.StockQty||i.stockqty) <= (i.MinStockLevel||i.minstocklevel) ? 'text-danger' : 'text-success'}" style="font-size: 0.8rem">${i.StockQty || i.stockqty} PCS</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+
+        function getStatusColor(status) {
+            switch((status||'').toLowerCase()) {
+                case 'completed': return 'success';
+                case 'in progress': return 'primary';
+                case 'pending': return 'warning';
+                case 'waiting on parts': return 'danger';
+                default: return 'info';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

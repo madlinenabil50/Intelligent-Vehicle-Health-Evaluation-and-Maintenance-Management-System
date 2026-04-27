@@ -1,0 +1,316 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Payments</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./client-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">My Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./client-dashboard.html"><i class="bi bi-house"></i> Dashboard</a></li>
+            <li><a href="./vehicle-list.html"><i class="bi bi-car-front"></i> My Vehicles</a></li>
+        </ul>
+        <div class="sidebar-heading">Services</div>
+        <ul class="sidebar-menu">
+            <li><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
+
+            <li class="active"><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
+            <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
+
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./profile.html"><i class="bi bi-person-circle"></i> My Profile</a></li>
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Payments</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#"
+                        class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=User&background=f72585&color=fff" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+                        <span class="d-none d-md-inline fw-semibold topbar-username">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="./profile.html"><i
+                                    class="bi bi-person me-2 text-primary"></i>
+                                Profile</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger logout-link" href="../../login.html"><i
+                                    class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Client / Payments</span>
+                    <h1 class="dashboard-title">My Payments</h1>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Outstanding Invoices -->
+                <div class="col-lg-5">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Outstanding Invoices</h6>
+                        </div>
+                        <div class="card-body p-0" id="outstandingInvoicesContainer">
+                            <div class="p-4 text-center text-muted">Loading...</div>
+                        </div>
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Payment History</h6>
+                        </div>
+                        <div class="card-body p-0" id="historyInvoicesContainer">
+                            <div class="p-4 text-center text-muted">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Form -->
+                <div class="col-lg-7">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Make a Payment</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="paymentForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Invoice</label>
+                                    <select class="form-select" id="invoiceSelect">
+                                        <option value="">Select outstanding invoice...</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label d-block mb-2">Payment Method</label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="paymentMethod"
+                                                id="payCard" value="card" checked>
+                                            <label class="form-check-label" for="payCard"><i
+                                                    class="bi bi-credit-card me-1"></i> Card</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="paymentMethod"
+                                                id="payCash" value="cash">
+                                            <label class="form-check-label" for="payCash"><i
+                                                    class="bi bi-cash me-1"></i> Cash</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="paymentMethod"
+                                                id="payInstalment" value="instalment">
+                                            <label class="form-check-label" for="payInstalment"><i
+                                                    class="bi bi-calendar3 me-1"></i> Instalment</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="cardFields">
+                                    <div class="mb-3">
+                                        <label class="form-label">Card Number</label>
+                                        <input type="text" class="form-control" id="cardNumber"
+                                            placeholder="1234 5678 9012 3456" maxlength="19">
+                                    </div>
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label">Expiry Date</label>
+                                            <input type="text" class="form-control" id="expiryDate" placeholder="MM/YY"
+                                                maxlength="5">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">CVV</label>
+                                            <input type="password" class="form-control" id="cvv" placeholder="•••"
+                                                maxlength="4">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Cardholder Name</label>
+                                        <input type="text" class="form-control" placeholder="Jane Doe">
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2 p-3 mb-3 rounded-3"
+                                    style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);">
+                                    <i class="bi bi-shield-lock-fill text-success fs-5"></i>
+                                    <small class="text-muted">Your payment is secured with 256-bit SSL
+                                        encryption.</small>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                                    <i class="bi bi-credit-card me-2"></i> Pay Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=20260425_v11"></script>
+    <script>
+        // Format card number with spaces
+        const cardNumInput = document.getElementById('cardNumber');
+        if (cardNumInput) {
+            cardNumInput.addEventListener('input', function () {
+                let val = this.value.replace(/\D/g, '').slice(0, 16);
+                this.value = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+            });
+        }
+
+        // Format expiry
+        const expiryInput = document.getElementById('expiryDate');
+        if (expiryInput) {
+            expiryInput.addEventListener('input', function () {
+                let val = this.value.replace(/\D/g, '').slice(0, 4);
+                if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+                this.value = val;
+            });
+        }
+
+        let currentUnpaidInvoices = [];
+
+        async function fetchInvoices() {
+            try {
+                const res = await fetch('/api/invoices');
+                if (res.ok) {
+                    const invoices = await res.json();
+
+                    const outstanding = invoices.filter(i => i.Status !== 'Paid');
+                    const paid = invoices.filter(i => i.Status === 'Paid');
+                    currentUnpaidInvoices = outstanding;
+
+                    // Render Outstanding
+                    const outContainer = document.getElementById('outstandingInvoicesContainer');
+                    if (outstanding.length === 0) {
+                        outContainer.innerHTML = '<div class="p-4 text-center text-muted">No outstanding invoices.</div>';
+                    } else {
+                        outContainer.innerHTML = outstanding.map(i => `
+                            <div class="invoice-item">
+                                <div>
+                                    <div class="fw-semibold">INV-${i.Invoice_ID}</div>
+                                    <small class="text-muted">Issued: ${i.InvoiceDate || '-'}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="color:#f59e0b;">$${i.Total}</div>
+                                    <span class="badge bg-warning text-dark">${i.Status}</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Render Paid History
+                    const histContainer = document.getElementById('historyInvoicesContainer');
+                    if (paid.length === 0) {
+                        histContainer.innerHTML = '<div class="p-4 text-center text-muted">No payment history.</div>';
+                    } else {
+                        histContainer.innerHTML = paid.map(i => `
+                            <div class="invoice-item">
+                                <div>
+                                    <div class="fw-semibold">INV-${i.Invoice_ID}</div>
+                                    <small class="text-muted">Paid on: ${i.PaymentDate || '-'}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">$${i.Total}</div>
+                                    <span class="badge bg-success">Paid</span>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Populate Select Dropdown
+                    const select = document.getElementById('invoiceSelect');
+                    select.innerHTML = '<option value="">Select outstanding invoice...</option>';
+                    outstanding.forEach(i => {
+                        const opt = document.createElement('option');
+                        opt.value = i.Invoice_ID;
+                        opt.textContent = `INV-${i.Invoice_ID} — $${i.Total}`;
+                        select.appendChild(opt);
+                    });
+
+                } else if (res.status === 401) {
+                    window.location.href = 'login.html';
+                }
+            } catch (err) {
+                console.error("Fetch invoices error", err);
+            }
+        }
+
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const invoiceId = document.getElementById('invoiceSelect').value;
+            const method = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            if (!invoiceId) {
+                alert("Please select an invoice to pay.");
+                return;
+            }
+
+            const invObj = currentUnpaidInvoices.find(i => i.Invoice_ID == invoiceId);
+            if (!invObj) return;
+
+            if (method === 'card') {
+                const cn = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                const cvv = document.getElementById('cvv').value;
+                const exp = document.getElementById('expiryDate').value;
+                if (cn.length < 15) { alert('Invalid card number.'); return; }
+                if (cvv.length < 3) { alert('Invalid CVV.'); return; }
+                if (!exp.includes('/')) { alert('Invalid Expiry Date.'); return; }
+            }
+
+            try {
+                const res = await fetch('/api/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        invoice_id: invoiceId,
+                        amount: invObj.Total,
+                        method: method.charAt(0).toUpperCase() + method.slice(1)
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Payment successful!");
+                    fetchInvoices(); // Refresh the list
+                    e.target.reset(); // Clear form
+                } else {
+                    const data = await res.json();
+                    alert("Error: " + (data.error || "Payment failed"));
+                }
+            } catch (err) {
+                console.error("Payment error", err);
+                alert("Network error processing payment.");
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', fetchInvoices);
+    </script>
+</body>
+
+</html>

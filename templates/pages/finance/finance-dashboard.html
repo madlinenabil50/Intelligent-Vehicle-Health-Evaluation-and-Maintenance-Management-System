@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Finance Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./finance-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i> IVHEMMS</a>
+        {% if user_data.role == 'admin' %}
+        <div class="sidebar-heading admin-only">Admin</div>
+        <ul class="sidebar-menu admin-only">
+            <li><a href="../admin/admin-dashboard.html"><i class="bi bi-arrow-left-circle"></i> Back to Admin</a></li>
+        </ul>
+        {% endif %}
+        <div class="sidebar-heading">Finance</div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="./finance-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./invoices.html"><i class="bi bi-receipt"></i> Invoices</a></li>
+            <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
+            <li><a href="./reports.html"><i class="bi bi-bar-chart"></i> Reports</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Financial Overview</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile" data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header mb-4">
+                <div>
+                    <span class="dashboard-breadcrumbs">Finance / Home</span>
+                    <h1 class="dashboard-title">Dashboard</h1>
+                </div>
+            </div>
+
+            <!-- KPI Pods -->
+            <div class="row g-4 mb-4" id="kpiContainer">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Total Revenue (Settled)</div>
+                        <div class="kpi-value" id="kpiTotalPaid">EGP 0.00</div>
+                        <div class="kpi-trend positive"><i class="bi bi-hash"></i> Current period</div>
+                        <i class="bi bi-cash-stack kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Outstanding Balance</div>
+                        <div class="kpi-value" id="kpiTotalUnpaid">EGP 0.00</div>
+                        <div class="kpi-trend negative"><i class="bi bi-clock"></i> Collection required</div>
+                        <i class="bi bi-hourglass kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Collection Rate</div>
+                        <div class="kpi-value" id="kpiRate">0.0%</div>
+                        <div class="kpi-trend" id="kpiRateTrend">...</div>
+                        <i class="bi bi-percent kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Active Invoices</div>
+                        <div class="kpi-value" id="kpiCount">0</div>
+                        <div class="kpi-trend positive"><i class="bi bi-journal-text"></i> Total volume</div>
+                        <i class="bi bi-receipt kpi-icon-overlay"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Revenue Trend -->
+                <div class="col-lg-8">
+                    <div class="card border-0 rounded-4 shadow-sm">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Revenue Trend (Last 6 Months)</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="revChart" style="height:300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- Status Distribution -->
+                <div class="col-lg-4">
+                    <div class="card border-0 rounded-4 shadow-sm h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Invoice Status</h6>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            <canvas id="statusChart" style="height:250px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="col-12">
+                    <div class="card border-0 rounded-4 shadow-sm">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Recent Activity</h6>
+                            <a href="./invoices.html" class="btn btn-sm btn-outline-secondary">View Detail</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0" id="recentTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4">Invoice</th>
+                                            <th>Client</th>
+                                            <th>Date</th>
+                                            <th class="text-end pe-4">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentBody">
+                                        <tr><td colspan="4" class="text-center py-5 text-muted small">Loading activity data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=6"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <script>
+        let revChartInstance = null;
+        let statusChartInstance = null;
+        let globalMonthlyData = [];
+        let globalInvoicesData = [];
+
+        // Update avatar and check admin role
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            
+            // Watch for theme changes to re-render charts
+            const observer = new MutationObserver(mutations => {
+                mutations.forEach(m => {
+                    if (m.attributeName === 'data-theme') {
+                        if (globalMonthlyData.length) updateRevChart(globalMonthlyData);
+                        if (globalInvoicesData.length) updateStatusChart(globalInvoicesData);
+                    }
+                });
+            });
+            observer.observe(document.documentElement, { attributes: true });
+        });
+
+        async function loadDashboard() {
+            try {
+                const ts = Date.now();
+                const [rStats, rInvoices] = await Promise.all([
+                    fetch(`/api/finance/stats?_t=${ts}`),
+                    fetch(`/api/admin/invoices?_t=${ts}`)
+                ]);
+
+                if (!rStats.ok || !rInvoices.ok) {
+                    document.getElementById('recentBody').innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Failed to load data. Please check your session.</td></tr>';
+                    return;
+                }
+
+                const stats = await rStats.json();
+                const invoicesResp = await rInvoices.json();
+                // invoicesResp may be paginated {data:[...]} or a plain array
+                const invoices = Array.isArray(invoicesResp) ? invoicesResp : (invoicesResp.data || []);
+
+                // 1. Update KPIs
+                const paid = stats.paid_total || 0;
+                const unpaid = stats.unpaid_total || 0;
+                const total = paid + unpaid;
+                const rate = total > 0 ? (paid / total * 100).toFixed(1) : 0;
+
+                document.getElementById('kpiTotalPaid').textContent = `EGP ${paid.toLocaleString()}`;
+                document.getElementById('kpiTotalUnpaid').textContent = `EGP ${unpaid.toLocaleString()}`;
+                document.getElementById('kpiRate').textContent = `${rate}%`;
+                // Use active_count from stats API (non-paid invoices count)
+                document.getElementById('kpiCount').textContent = stats.active_count ?? invoices.filter(i => i.Status !== 'Paid').length;
+                document.getElementById('kpiRateTrend').className = `kpi-trend ${rate >= 90 ? 'positive' : 'negative'}`;
+                document.getElementById('kpiRateTrend').innerHTML = `<i class="bi bi-shield-check"></i> ${rate >= 90 ? 'Efficient' : 'Needs attention'}`;
+
+                // 2. Charts
+                globalMonthlyData = stats.monthly_revenue || [];
+                globalInvoicesData = invoices;
+                updateRevChart(globalMonthlyData);
+                updateStatusChart(globalInvoicesData);
+
+                // 3. Activity Table
+                if (invoices.length === 0) {
+                    document.getElementById('recentBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No invoices found.</td></tr>';
+                    return;
+                }
+                const recent = [...invoices].sort((a,b) => b.Invoice_ID - a.Invoice_ID).slice(0, 5);
+                document.getElementById('recentBody').innerHTML = recent.map(inv => `
+                    <tr>
+                        <td class="ps-4 fw-bold">INV-${String(inv.Invoice_ID).padStart(3,'0')}</td>
+                        <td>${inv.ClientName || 'Guest'}</td>
+                        <td>${inv.InvoiceDate || inv.invoicedate || '-'}</td>
+                        <td class="text-end pe-4"><span class="fw-bold">EGP ${parseFloat(inv.Total || inv.total || 0).toLocaleString()}</span></td>
+                    </tr>
+                `).join('');
+
+            } catch(e) {
+                console.error('Dashboard load error:', e);
+                document.getElementById('recentBody').innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Error loading dashboard data.</td></tr>';
+            }
+        }
+
+
+        function updateRevChart(monthly) {
+            const ctx = document.getElementById('revChart').getContext('2d');
+            const { textColor, gridColor } = getChartTheme();
+            if(revChartInstance) revChartInstance.destroy();
+            revChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthly.map(d => d.month),
+                    datasets: [{
+                        label: 'Gross Settlement',
+                        data: monthly.map(d => d.amount),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true, tension: 0.4, borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { display: false } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                    }
+                }
+            });
+        }
+
+        function updateStatusChart(invoices) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const { textColor } = getChartTheme();
+            if(statusChartInstance) statusChartInstance.destroy();
+
+            const statuses = invoices.reduce((acc, inv) => {
+                acc[inv.Status] = (acc[inv.Status] || 0) + 1;
+                return acc;
+            }, {});
+
+            statusChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statuses),
+                    datasets: [{
+                        data: Object.values(statuses),
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 20 } } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

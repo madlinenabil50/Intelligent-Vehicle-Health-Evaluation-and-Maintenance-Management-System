@@ -1,0 +1,291 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Technician Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            </li>
+            <li><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Technician Dashboard</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#"
+                        class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=Mike+Thompson&background=3a86ff&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username">Mike Thompson</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="../../login.html"><i
+                                    class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Technician Portal / Daily Overview</span>
+                    <h1 class="dashboard-title">Welcome Back, Mike! 👋</h1>
+                    <p class="text-muted small mt-1">You have 3 active work orders and 1 urgent task today.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3 me-1"></i>
+                        Schedule</button>
+                    <a href="./work-orders.html" class="btn btn-primary btn-sm"><i class="bi bi-card-list me-1"></i> My
+                        Queue</a>
+                </div>
+            </div>
+            <!-- KPI Pods -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Assigned work order</div>
+                        <div class="kpi-value">3</div>
+                        <i class="bi bi-card-list kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Completed Today</div>
+                        <div class="kpi-value">1</div>
+                        <div class="kpi-trend positive"><i class="bi bi-check2-all"></i> On track</div>
+                        <i class="bi bi-check-circle kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Parts Requested</div>
+                        <div class="kpi-value">2</div>
+                        <div class="kpi-trend warning"><i class="bi bi-exclamation-triangle"></i> 1 Pending</div>
+                        <i class="bi bi-box-seam kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Monthly Completed</div>
+                        <div class="kpi-value">28</div>
+                        <div class="kpi-trend positive"><i class="bi bi-graph-up-arrow"></i> +15% vs last month</div>
+                        <i class="bi bi-trophy kpi-icon-overlay"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10"
+                                        style="width: 54px; height: 54px;">
+                                        <i class="bi bi-play-circle-fill text-primary h3 mb-0"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Assigned work order</h5>
+                                        <div class="text-muted small">Current Job: <span
+                                                class="fw-semibold">#WO-4592 — Engine Diagnostics</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary px-4">Start Task</button>
+                                    <a href="./work-order-details.html?wo=WO-4592"
+                                        class="btn btn-outline-secondary">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Active Work Queue -->
+                <div class="col-lg-8">
+                    <div class="card border-0 rounded-4">
+                        <div
+                            class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Assigned work order</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="text-uppercase small fw-bold" style="letter-spacing: 0.5px;">
+                                        <tr>
+                                            <th class="ps-4">WO ID</th>
+                                            <th>Vehicle</th>
+                                            <th>Service</th>
+                                            <th>Status</th>
+                                            <th class="text-end pe-4">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="ps-4 fw-bold">#WO-4592</td>
+                                            <td>
+                                                <div class="fw-semibold">2021 Ford Bronco</div>
+                                                <small class="text-muted">Plate: XYZ-1234</small>
+                                            </td>
+                                            <td>Engine Diagnostics</td>
+                                            <td><span class="status-badge in-progress">In Progress</span></td>
+                                            <td class="text-end pe-4"><a href="./work-order-details.html?wo=WO-4592"
+                                                    class="btn btn-primary btn-sm px-3">Open</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-4 fw-bold">#WO-4595</td>
+                                            <td>
+                                                <div class="fw-semibold">2018 Honda Civic</div>
+                                                <small class="text-muted">Plate: ABC-9876</small>
+                                            </td>
+                                            <td>Brake Pad Replacement</td>
+                                            <td><span class="status-badge pending">Waiting on Parts</span></td>
+                                            <td class="text-end pe-4"><a href="./work-order-details.html?wo=WO-4595"
+                                                    class="btn btn-primary btn-sm px-3">Open</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="ps-4 fw-bold">#WO-4601</td>
+                                            <td>
+                                                <div class="fw-semibold">2021 Ford Bronco</div>
+                                                <small class="text-muted">Plate: XYZ-1234</small>
+                                            </td>
+                                            <td>Full Service Inspection</td>
+                                            <td><span class="status-badge queued">Queued</span></td>
+                                            <td class="text-end pe-4"><a href="./work-order-details.html?wo=WO-4601"
+                                                    class="btn btn-outline-secondary btn-sm px-3">Open</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- My Stats -->
+                <div class="col-lg-4">
+                    <!-- Efficiency & Top Tech -->
+                    <div class="card border-0 rounded-4 mb-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Personal Efficiency</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center py-2">
+                                <h2 class="fw-bold text-primary mb-1">94.8%</h2>
+                                <p class="text-muted small mb-0">Real-time Skill Index</p>
+                                <div class="progress mt-3" style="height: 6px;">
+                                    <div class="progress-bar bg-primary shadow-sm" style="width:94%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 rounded-4 mb-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width: 50px; height: 50px; background: rgba(99, 102, 241, 0.1);">
+                                    <i class="bi bi-trophy text-warning h3 mb-0"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-0">Top Technician</h6>
+                                    <p class="text-muted small mb-0">This Month</p>
+                                    <div class="fw-bold mt-1">Mike Thompson</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-0 rounded-4">
+                        <div class="card-body">
+                            <div class="text-center">
+                                <div class="chart-container"
+                                    style="position: relative; height: 180px; width: 100%; margin: 0 auto;">
+                                    <canvas id="completionChart"></canvas>
+                                    <div
+                                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                        <div class="h3 fw-bold mb-0">80%</div>
+                                        <div class="text-muted small">Done</div>
+                                    </div>
+                                </div>
+                                <p class="small fw-semibold mb-0 mt-3">Monthly Completion Goal</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=20260425_v11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Completion Doughnut Chart
+            const ctx = document.getElementById('completionChart').getContext('2d');
+
+            // Create gradients for doughnut
+            const gradFinish = ctx.createLinearGradient(0, 0, 0, 180);
+            gradFinish.addColorStop(0, '#6366f1');
+            gradFinish.addColorStop(1, '#a855f7');
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [80, 20],
+                        backgroundColor: [gradFinish, getChartTheme().gridColor],
+                        hoverBackgroundColor: ['#818cf8', getChartTheme().gridColor],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '85%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

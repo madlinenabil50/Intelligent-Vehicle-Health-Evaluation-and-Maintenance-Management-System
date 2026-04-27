@@ -1,0 +1,227 @@
+/* ========== AUTH BACKGROUND ========== */
+body.auth-bg.vms-app {
+    min-height: 100vh !important;
+    margin: 0 !important;
+    background-color: #000 !important;
+    background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.25)), url('https://images.unsplash.com/photo-1625047509248-ec889cbff17f?w=1600') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-attachment: fixed !important;
+}
+
+[data-theme="light"] body.auth-bg.vms-app {
+    background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.25)), url('https://images.unsplash.com/photo-1625047509248-ec889cbff17f?w=1600') !important;
+}
+
+.bg-glow {
+    display: none;
+}
+
+[data-theme="dark"] .bg-glow {
+    background:
+        radial-gradient(1000px 800px at 0% 0%, rgba(99, 102, 241, 0.25), transparent 70%),
+        radial-gradient(1000px 800px at 100% 100%, rgba(217, 70, 239, 0.18), transparent 70%),
+        radial-gradient(800px 500px at 50% 100%, rgba(244, 63, 94, 0.12), transparent 60%);
+}
+
+/* ========== AUTH CARD ========== */
+.auth-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Glassmorphism: semi-transparent background */
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="light"] .auth-card {
+    background: rgba(255, 255, 255, 0.45) !important; /* Even more transparent for Light Theme */
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .auth-card:hover {
+    background: rgba(255, 255, 255, 0.5) !important;
+}
+
+.auth-card .card-body {
+    padding: 2.5rem;
+}
+
+/* ========== BRAND ROW ========== */
+.brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.brand-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    animation: float 4s ease-in-out infinite;
+}
+
+.auth-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.auth-back-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+    box-shadow: var(--glass-shadow);
+    color: var(--primary-color);
+}
+
+/* ========== AUTH TITLES ========== */
+.auth-title {
+    color: var(--text-color);
+    font-weight: 800;
+    margin: 8px 0 6px;
+    font-size: 1.9rem;
+}
+
+.auth-subtitle {
+    color: var(--text-color);
+    opacity: 0.7;
+    margin-bottom: 0;
+    font-size: 1rem;
+}
+
+.auth-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 1.5rem 0;
+}
+
+/* ========== FORM CONTROLS (AUTH OVERRIDE) ========== */
+.auth-card .form-control {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 0.98rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.auth-card .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15), var(--glow-primary);
+    background: var(--input-bg);
+    color: var(--text-color);
+    transform: translateY(-1px);
+}
+
+.auth-card .form-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 12px;
+    padding: 13px 16px;
+}
+
+.auth-card .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--glow-primary);
+}
+
+.auth-card .form-label {
+    color: var(--text-color);
+    opacity: 0.85;
+    font-weight: 500;
+    font-size: 0.92rem;
+}
+
+/* ========== SUBMIT BUTTON ========== */
+.btn-auth {
+    width: 100%;
+    border-radius: 14px;
+    padding: 14px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary-color), #818cf8);
+    color: white !important;
+    box-shadow: 0 8px 20px -6px rgba(var(--primary-rgb), 0.5);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-auth:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px -8px rgba(var(--primary-rgb), 0.6), 0 0 15px rgba(var(--primary-rgb), 0.3);
+    filter: brightness(1.1);
+}
+
+.btn-auth:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+/* ========== SECONDARY LINK ========== */
+.auth-link-row {
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 0.92rem;
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.auth-link-row a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.auth-link-row a:hover {
+    color: var(--primary-hover);
+}
+
+/* ========== SUCCESS STATE ========== */
+.auth-success-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--success-color);
+    margin: 0 auto 1.2rem;
+    animation: pulse-glow 2s infinite;
+}

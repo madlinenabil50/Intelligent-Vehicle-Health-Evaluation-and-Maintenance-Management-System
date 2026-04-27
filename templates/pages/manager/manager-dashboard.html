@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Service Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./manager-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Manager</div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="./manager-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./manage-appointments.html"><i class="bi bi-calendar-check"></i> Appointments</a></li>
+            <li><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+        </ul>
+        <div class="sidebar-heading">Teams</div>
+        <ul class="sidebar-menu">
+            <li><a href="./parts-approval.html"><i class="bi bi-box-seam"></i> Parts Approval</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Service Manager Dashboard</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=8b5cf6&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName">{{ user_data.firstname }} {{ user_data.lastname }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Manager / Overview</span>
+                    <h1 class="dashboard-title">Service Operations</h1>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="./manage-appointments.html" class="btn btn-primary btn-sm"><i class="bi bi-calendar-plus me-1"></i> Manage Bookings</a>
+                </div>
+            </div>
+
+            <!-- KPI Pods -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Today's Appointments</div>
+                        <div class="kpi-value" id="kpiAppts">—</div>
+                        <div class="kpi-trend positive" id="kpiApptsTrend"><span class="spinner-border spinner-border-sm"></span> Loading</div>
+                        <i class="bi bi-calendar-event kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Open Work Orders</div>
+                        <div class="kpi-value" id="kpiWO">—</div>
+                        <div class="kpi-trend warning" id="kpiWOTrend"><span class="spinner-border spinner-border-sm"></span> Loading</div>
+                        <i class="bi bi-tools kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Technicians on Duty</div>
+                        <div class="kpi-value" id="kpiTechs">—</div>
+                        <div class="kpi-trend positive" id="kpiTechsTrend"><span class="spinner-border spinner-border-sm"></span> Loading</div>
+                        <i class="bi bi-person-badge kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Parts Requests</div>
+                        <div class="kpi-value" id="kpiParts">—</div>
+                        <div class="kpi-trend warning" id="kpiPartsTrend"><span class="spinner-border spinner-border-sm"></span> Loading</div>
+                        <i class="bi bi-box-seam kpi-icon-overlay"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Appointments Table -->
+                <div class="col-lg-7">
+                    <div class="card border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between">
+                            <h6 class="fw-bold mb-0">Today's Appointment Queue</h6>
+                            <a href="./manage-appointments.html" class="btn btn-sm btn-outline-secondary">View All</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table align-middle mb-0">
+                                    <thead class="text-uppercase small fw-bold text-muted">
+                                        <tr>
+                                            <th class="ps-4">Client</th>
+                                            <th>Service</th>
+                                            <th>Time</th>
+                                            <th>Status</th>
+                                            <th class="text-end pe-4">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="apptsQueue">
+                                        <tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parts Approval -->
+                <div class="col-lg-5">
+                    <div class="card border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between">
+                            <h6 class="fw-bold mb-0">Parts Approval Queue</h6>
+                            <a href="./parts-approval.html" class="btn btn-sm btn-outline-secondary">All</a>
+                        </div>
+                        <div class="card-body p-0 d-flex flex-column h-100" id="partsQueue">
+                            <div class="p-4 text-center text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading parts...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service Throughput Chart -->
+                <div class="col-12">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Weekly Service Throughput</h6>
+                        </div>
+                        <div class="card-body"><canvas id="throughputChart" style="height:250px;"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=7"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <script>
+        const userId = "{{ user_data.user_id }}";
+        const userRole = "{{ user_data.role }}";
+        const fullName = "{{ user_data.firstname }} {{ user_data.lastname }}".trim();
+
+
+        const apis = {
+            appts: '/api/admin/appointments?page_size=1000',
+            wo: '/api/work-orders?page_size=1000',
+            parts: '/api/parts-approval?page_size=1000',
+            users: '/api/users?role=technician'
+        };
+
+        let dbAppts = [], dbWo = [], dbParts = [], dbTechs = [];
+
+        async function fetchAll() {
+            try {
+                const ts = Date.now();
+                const [rA, rW, rP, rT] = await Promise.all([
+                    fetch(`${apis.appts}&_t=${ts}`),
+                    fetch(`${apis.wo}&_t=${ts}`),
+                    fetch(`${apis.parts}&_t=${ts}`),
+                    fetch(`${apis.users}&_t=${ts}`)
+                ].map(p => p.catch(() => ({ ok: false }))));
+
+                if(rA.ok) { const aData = await rA.json(); dbAppts = aData.data || aData; }
+                if(rW.ok) { const wData = await rW.json(); dbWo = wData.work_orders || wData.data || wData; }
+                if(rP.ok) { const pData = await rP.json(); dbParts = pData.data || pData; dbPartsMeta = pData; }
+                
+                // Techs logic from WO
+                const techsInWo = new Set(dbWo.map(w => w.Technician_ID).filter(Boolean));
+                document.getElementById('kpiTechs').textContent = techsInWo.size || 0;
+                document.getElementById('kpiTechsTrend').innerHTML = `<i class="bi bi-people"></i> Active today`;
+                
+                renderDash();
+            } catch (e) {
+                console.error("Dashboard DB fetch error:", e);
+                // window.toast('Error loading dashboard data', 'error');
+            }
+        }
+
+        let dbPartsMeta = {}; // To store pending counts from paginated response
+
+        const badgeClass = (s) => {
+            const map = { 'Pending': 'warning text-dark', 'In Progress': 'info text-dark', 'Completed': 'success', 'Confirmed': 'primary', 'Canceled': 'danger' };
+            return map[s] || 'secondary';
+        };
+
+        function renderDash() {
+            // 1. Appts KPI
+            const todayStr = new Date().toISOString().split('T')[0];
+            let displayAppts = dbAppts.filter(a => (a.StartTime||'').startsWith(todayStr));
+            let isToday = true;
+            
+            // If no appts today, just show the newest/upcoming ones so the dash isn't empty
+            if(displayAppts.length === 0) {
+                displayAppts = [...dbAppts].sort((a,b) => new Date(b.StartTime) - new Date(a.StartTime)).slice(0, 5);
+                isToday = false;
+            }
+
+            const confirmed = displayAppts.filter(a => a.Status === 'Confirmed').length;
+            document.getElementById('kpiAppts').textContent = displayAppts.length;
+            
+            if(isToday) {
+                document.getElementById('kpiApptsTrend').innerHTML = `<i class="bi bi-check2"></i> ${confirmed} Confirmed Today`;
+            } else {
+                document.getElementById('kpiApptsTrend').innerHTML = `<i class="bi bi-calendar"></i> Showing Recent`;
+                document.querySelector('.dashboard-title').parentElement.nextElementSibling; // Just to keep code same
+            }
+
+            if(!displayAppts.length) {
+                document.getElementById('apptsQueue').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No appointments found.</td></tr>';
+            } else {
+                document.getElementById('apptsQueue').innerHTML = displayAppts.slice(0, 5).map(a => {
+                    const vInfo = a.Make ? `${a.Make} ${a.Model||''}` : 'No vehicle info';
+                    const sTimeRaw = a.StartTime ? a.StartTime.replace('Z', '') : null;
+                    const sTime = sTimeRaw ? new Date(sTimeRaw).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown Time';
+                    
+                    return `
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-semibold">${a.ClientName||'Unknown Client'}</div>
+                            <small class="text-muted">${vInfo}</small>
+                        </td>
+                        <td>${a.service_type||'Maintenance'}</td>
+                        <td>${sTime}</td>
+                        <td><span class="badge bg-${badgeClass(a.Status)}">${a.Status||'Unknown'}</span></td>
+                        <td class="text-end pe-4"><a href="./manage-appointments.html" class="btn btn-sm btn-outline-secondary">View</a></td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+
+            // 2. WO KPI
+            const openWo = dbWo.filter(w => w.Status === 'Pending');
+            document.getElementById('kpiWO').textContent = openWo.length;
+            document.getElementById('kpiWOTrend').innerHTML = openWo.length ? `<i class="bi bi-tools"></i> Active queue` : `<i class="bi bi-check-all"></i> All clear`;
+
+            // 3. Parts KPI
+            const pendingCount = dbPartsMeta.pending_count ?? dbParts.filter(p => p.Status === 'Pending').length;
+            document.getElementById('kpiParts').textContent = pendingCount;
+            
+            if(pendingCount > 0) {
+                document.getElementById('kpiPartsTrend').className = "kpi-trend warning text-warning";
+                document.getElementById('kpiPartsTrend').innerHTML = `<i class="bi bi-exclamation-circle"></i> Needs Approval`;
+            } else {
+                document.getElementById('kpiPartsTrend').className = "kpi-trend positive text-success";
+                document.getElementById('kpiPartsTrend').innerHTML = `<i class="bi bi-check-circle"></i> All sorted`;
+            }
+
+            const partsQueueDiv = document.getElementById('partsQueue');
+            const pendingParts = dbParts.filter(p => p.Status === 'Pending');
+            if(pendingParts.length === 0) {
+                partsQueueDiv.innerHTML = '<div class="p-4 text-center text-muted h-100 d-flex align-items-center justify-content-center"><div class="small"><i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>No pending requests.</div></div>';
+            } else {
+                partsQueueDiv.innerHTML = pendingParts.slice(0, 3).map(p => `
+                    <div class="p-3 border-bottom list-hover">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="fw-semibold text-truncate" style="max-width: 250px;">${p.ItemName} <span class="badge bg-secondary ms-1">×${p.Quantity}</span></div>
+                                <small class="text-muted">From: ${p.RequestedBy||'Tech'} · <a href="./work-order-details.html?id=${p.JobCard_ID}" class="text-decoration-none text-muted fw-bold">WO-${p.JobCard_ID}</a></small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success flex-fill" onclick="quickApprovePart(${p.id}, this)"><i class="bi bi-check me-1"></i> Approve</button>
+                            <button class="btn btn-sm btn-outline-danger flex-fill" onclick="quickRejectPart(${p.id}, this)"><i class="bi bi-x me-1"></i> Reject</button>
+                        </div>
+                    </div>
+                `).join('') + `
+                <div class="p-3 text-center bg-light bg-opacity-10 rounded-bottom">
+                    <div id="parts-inline-alert" style="padding: 0 10px;"></div>
+                    <a href="./parts-approval.html" class="text-decoration-none small fw-semibold text-primary">View all ${pendingCount} pending requests <i class="bi bi-arrow-right"></i></a>
+                </div>
+                `;
+            }
+
+            renderChart();
+        }
+
+        async function quickApprovePart(id, btn) { await actOnPart(id, 'approve', btn); }
+        async function quickRejectPart(id, btn) { await actOnPart(id, 'reject', btn); }
+
+        async function actOnPart(id, action, btn) {
+            const siblings = Array.from(btn.parentElement.children);
+            siblings.forEach(b => b.disabled = true);
+            const ogHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
+            try {
+                const res = await fetch('/api/parts-approval', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id, action})
+                });
+                if(res.ok) {
+                    showInlineAlert('parts-inline-alert', `Part ${action}d ✓`);
+                    setTimeout(fetchAll, 1000); // reload after delay to let alert be seen
+                } else {
+                    const e = await res.json();
+                    toast(e.error||'Action failed', 'error');
+                }
+            } catch(e) {
+                toast('Network error', 'error');
+            } finally {
+                // If the DOM wasn't replaced by reload:
+                btn.innerHTML = ogHtml;
+                siblings.forEach(b => b.disabled = false);
+            }
+        }
+
+        let chartInst = null;
+        function renderChart() {
+            const comp = dbWo.filter(w => w.Status === 'Completed').length;
+            const open = dbWo.filter(w => w.Status === 'In Progress').length;
+            const pend = dbWo.filter(w => (w.Status === 'Pending' || w.Status === 'Scheduled' || w.Status === 'Confirmed')).length;
+
+            if(chartInst) chartInst.destroy();
+            const ctx = document.getElementById('throughputChart').getContext('2d');
+
+            Chart.defaults.color = '#9ca3af';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            chartInst = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'In Progress', 'Pending/Scheduled'],
+                    datasets: [{
+                        data: [comp, open, pend],
+                        backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b'],
+                        borderWidth: 0,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 12, usePointStyle: true, color: '#9ca3af', padding: 20 } }
+                    }
+                }
+            });
+        }
+
+        function loadDashboard() {
+            fetchAll();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+        setInterval(loadDashboard, 60000); // refresh every minute
+
+    </script>
+</body>
+
+</html>

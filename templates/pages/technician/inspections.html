@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Vehicle Inspections</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css?v=6.0">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css?v=6.0">
+    <link rel="stylesheet" href="../../assets/css/tables.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li class="active"><a href="./inspections.html"><i class="bi bi-clipboard-check"></i> Inspections</a></li>
+            <li><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Vehicle Inspections</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Technician / Inspections</span>
+                    <h1 class="dashboard-title">Inspection Reports</h1>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary btn-sm px-3" data-bs-toggle="modal"
+                        data-bs-target="#newInspectionModal">
+                        <i class="bi bi-plus-lg me-1"></i> New Inspection
+                    </button>
+                </div>
+            </div>
+            <div class="card border-0 rounded-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="inspectionsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Vehicle Name</th>
+                                    <th>Veh. ID</th>
+                                    <th>JobCard</th>
+                                    <th>Date</th>
+                                    <th>Health Score</th>
+                                    <th>Status</th>
+                                    <th>Results</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loading state -->
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                        Loading inspections...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-container"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Inspection Modal (v6.1 Compact Holograph) -->
+    <div class="modal fade" id="newInspectionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered diag-modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-visible bg-transparent">
+                <!-- Floating Compact Console -->
+                <div class="insp-glass-console">
+                    <div class="d-flex align-items-center gap-3 w-100">
+                        <div class="diag-orb-v5" id="diagnosticOrb">0%</div>
+                        <div class="ms-3 flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <h5 id="diagTitle" class="fw-bold mb-0"
+                                    style="letter-spacing: -0.5px; font-size: 1.1rem;">DIAGNOSTIC VECTOR</h5>
+                                <div id="finalCategoryDisplay" class="h5 fw-bold text-muted mb-0"
+                                    style="font-size: 1rem;">Inactive</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge border bg-white text-primary px-3 py-1 rounded-pill shadow-sm"
+                                    id="displayWoId"
+                                    style="font-size: 0.7rem; border-color: #cbd5e1 !important;">Awaiting Order</span>
+                                <span class="small fw-bold text-dark opacity-75" id="displayVehName"
+                                    style="font-size: 0.8rem;">No Vehicle Selected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close ms-3 opacity-50" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <form id="inspectionForm">
+                    <div class="px-4 py-3 border-bottom diag-modal-surface shadow-sm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="v5-group-label m-0 mb-2">Work Order Access</label>
+                                <select name="jobcard_id" class="form-select border-2" id="inspWoSelect" required
+                                    style="height: 48px; border-radius: 12px; font-weight: 600;">
+                                    <option value="">Select Work Order...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="v5-group-label m-0 mb-2">Vehicle ID Sensor</label>
+                                <input type="text" id="inspVehicleInfo" class="form-control border-2 bg-light fw-bold"
+                                    readonly placeholder="Awaiting selection..."
+                                    style="height: 48px; border-radius: 12px; color: #1e293b !important;">
+                                <input type="hidden" name="vehicle_id" id="inspVehicleId">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: TEST DRIVE -->
+                    <div class="v5-group-label">Vector 01: Dynamic Stress Test</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Engine Perf</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td1" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td1" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Road Handling</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td2" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td2" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Braking Sys</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td3" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td3" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Steering/Align</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td4" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td4" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Trans Shifting</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td5" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td5" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Suspension</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td6" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td6" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td6" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Road Noise</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td7" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td7" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td7" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Tire Balance</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="td8" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="td8" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="td8" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: EXTERIOR -->
+                    <div class="v5-group-label">Vector 02: Exterior Chassis</div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Paint Finish</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex1" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex1" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Body Damage</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex2" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex2" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Rust Analysis</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex3" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex3" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Windshield/Glass</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex4" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex4" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Headlights/Signals</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex5" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex5" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Mirrors/Bumpers</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex6" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex6" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex6" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Underbody</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="ex7" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="ex7" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="ex7" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: ELECTRICAL -->
+                    <div class="v5-group-label">Vector 03: Electrical Ecosystem</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Int Lighting</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el1" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Battery</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el2" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Inst Gauges</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el3" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>AC System</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el4" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Heater Op</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el5" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Stereo Sys</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el6" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el6" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Wiper Sys</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el7" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el7" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Power Seats</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el8" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-poor"><input
+                                            type="radio" name="el8" value="Poor" class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>OBD2 Code Scan</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="el9" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="el9" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="el9" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: UNDER HOOD -->
+                    <div class="v5-group-label">Vector 04: Under Hood Analytics</div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Fluid Levels</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh1" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh1" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Hoses/Belts</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh2" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh2" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Air Filter</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh3" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh3" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Radiator</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh4" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh4" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Oil Leaks</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh5" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh5" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Engine Noise</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="uh6" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="uh6" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="uh6" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: INTERIOR -->
+                    <div class="v5-group-label">Vector 05: Interior Audit</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Upholstery</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in1" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in1" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Int Trim</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in2" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in2" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Windows Op</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in3" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in3" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Seats Op</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in4" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in4" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Carpet/Mat</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in5" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in5" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Inst Panel</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in6" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in6" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in6" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Headliner</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in7" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in7" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in7" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Seatbelts</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="in8" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="in8" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="in8" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECTION: BUMPER TO BUMPER -->
+                    <div class="v5-group-label">Vector 06: Bumper To Bumper</div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Wheels/Tires</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="bb1" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="bb1" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="bb1" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Trunk/Spare</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="bb2" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="bb2" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="bb2" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Exhaust Sys</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="bb3" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="bb3" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="bb3" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Warning Lights</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="bb4" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="bb4" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="bb4" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="assessment-card-v5">
+                                <div class="assessment-title-v5">
+                                    <h6>Owners Manual</h6>
+                                </div>
+                                <div class="kinetic-grading-group"><label class="kinetic-pill pill-good"><input
+                                            type="radio" name="bb5" value="Good" checked
+                                            class="insp-radio">GOOD</label><label class="kinetic-pill pill-fair"><input
+                                            type="radio" name="bb5" value="Fair" class="insp-radio">FAIR</label><label
+                                        class="kinetic-pill pill-poor"><input type="radio" name="bb5" value="Poor"
+                                            class="insp-radio">POOR</label></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="assessment-card-v5 mt-4">
+                        <div class="assessment-title-v5">
+                            <h6>Ancillary Findings (Others)</h6><span>Custom technician synthesis and other
+                                vectors</span>
+                        </div>
+                        <textarea name="results" class="form-control border-0 mt-3" rows="3"
+                            placeholder="Enter custom observations or others..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-4 mb-5">
+                        <button type="button" class="btn btn-link text-muted text-decoration-none fw-bold"
+                            data-bs-dismiss="modal" style="font-size: 0.75rem;">DISCARD DATA</button>
+                        <button type="submit" id="transmitBtn"
+                            class="btn btn-primary px-5 rounded-pill fw-black shadow-lg"
+                            style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; height: 50px; font-size: 0.9rem; letter-spacing: 1px;">TRANSMIT
+                            REPORT</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/pagination.js"></script>
+    <script src="../../assets/js/main.js?v=2.0"></script>
+    <script>
+        const woSelect = document.getElementById('inspWoSelect');
+        const vehicleInfo = document.getElementById('inspVehicleInfo');
+        const vehicleIdInput = document.getElementById('inspVehicleId');
+        const displayWoId = document.getElementById('displayWoId');
+        const displayVehName = document.getElementById('displayVehName');
+        const diagnosticOrb = document.getElementById('diagnosticOrb');
+        const finalCategoryDisplay = document.getElementById('finalCategoryDisplay');
+        const radios = document.querySelectorAll('.insp-radio');
+
+        function calculateHealthScore() {
+            let total = 0;
+            let count = 0;
+            const values = { 'Good': 100, 'Fair': 60, 'Poor': 30 };
+            const groups = new Set();
+            document.querySelectorAll('.insp-radio').forEach(r => groups.add(r.name));
+
+            groups.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                if (checked) {
+                    total += values[checked.value];
+                    count++;
+                }
+            });
+            return count > 0 ? Math.round(total / count) : 0;
+        }
+
+        function updateRealTimeStatus(forcedScore = null, forcedCategory = null) {
+            // Guard against event objects being passed as first argument
+            if (forcedScore && typeof forcedScore === 'object' && forcedScore.target) {
+                forcedScore = null;
+            }
+            const score = forcedScore !== null ? forcedScore : calculateHealthScore();
+            const category = forcedCategory !== null ? forcedCategory : null;
+
+            if (diagnosticOrb) {
+                diagnosticOrb.innerText = score + '%';
+                diagnosticOrb.classList.remove('score-high', 'score-mid', 'score-low');
+                if (score >= 85) diagnosticOrb.classList.add('score-high');
+                else if (score >= 60) diagnosticOrb.classList.add('score-mid');
+                else if (score > 0) diagnosticOrb.classList.add('score-low');
+            }
+
+            if (forcedCategory) {
+                finalCategoryDisplay.innerText = forcedCategory;
+                finalCategoryDisplay.className = `h5 fw-bold mb-0 text-${score >= 85 ? 'success' : (score >= 60 ? 'warning' : 'danger')}`;
+            } else if (!woSelect.value) {
+                finalCategoryDisplay.innerText = 'Inactive';
+                finalCategoryDisplay.className = 'h5 fw-bold text-muted mb-0';
+            } else if (score >= 85) {
+                finalCategoryDisplay.innerText = 'Excellent';
+                finalCategoryDisplay.className = 'h5 fw-bold text-success mb-0';
+            } else if (score >= 60) {
+                finalCategoryDisplay.innerText = 'Operational';
+                finalCategoryDisplay.className = 'h5 fw-bold text-warning mb-0';
+            } else {
+                finalCategoryDisplay.innerText = 'Critical';
+                finalCategoryDisplay.className = 'h5 fw-bold text-danger mb-0';
+            }
+        }
+
+        document.querySelectorAll('.insp-radio').forEach(radio => radio.addEventListener('change', () => updateRealTimeStatus()));
+
+        async function loadInitialData() {
+            try {
+                const res = await fetch(`/api/work-orders?_t=${Date.now()}`);
+                const data = await res.json();
+                const assignedOrders = data.work_orders || data;
+                woSelect.innerHTML = '<option value="">Select Work Order...</option>' +
+                    assignedOrders.map(o => {
+                        const vName = `${o.Make || ''} ${o.Model || ''} (${o.PlateNumber || ''})`.trim();
+                        return `<option value="${o.JobCard_ID}" data-vehicle-id="${o.Vehicle_ID || ''}" data-vehicle-name="${vName}">WO-${o.JobCard_ID} • ${o.PlateNumber || 'N/A'}</option>`;
+                    }).join('');
+                loadInspections();
+            } catch (err) { console.error('Error loading initial data:', err); }
+        }
+
+        woSelect.addEventListener('change', function () {
+            const selected = this.options[this.selectedIndex];
+            if (this.value) {
+                const vName = selected.dataset.vehicleName || 'Unknown Vehicle';
+                vehicleInfo.value = vName;
+                vehicleIdInput.value = selected.dataset.vehicleId || '';
+                displayWoId.innerText = 'WO-' + this.value;
+                displayVehName.innerText = vName;
+            } else {
+                vehicleInfo.value = '';
+                vehicleIdInput.value = '';
+                displayWoId.innerText = 'Awaiting Order';
+                displayVehName.innerText = 'No Vehicle Selected';
+            }
+            updateRealTimeStatus();
+        });
+
+        let currentInspections = [];
+
+        // Single Event Listener for Modal Showing
+        document.getElementById('newInspectionModal').addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button ? button.getAttribute('data-id') : null;
+            const form = document.getElementById('inspectionForm');
+            const title = document.getElementById('diagTitle');
+            const transmitBtn = document.getElementById('transmitBtn');
+
+            // Reset state first
+            form.reset();
+            form.querySelectorAll('input, select, textarea').forEach(el => el.disabled = false);
+            vehicleInfo.disabled = true; // Always read-only
+            if (title) title.innerText = 'DIAGNOSTIC VECTOR';
+            if (transmitBtn) transmitBtn.style.display = 'block';
+
+            // If triggered by a View button, switch to Locked Mode
+            if (id && currentInspections.length > 0) {
+                const insp = currentInspections.find(i => String(i.Inspection_ID) === String(id));
+                if (insp) {
+                    if (title) title.innerText = 'VIEW DIAGNOSTIC REPORT';
+                    if (transmitBtn) transmitBtn.style.display = 'none';
+
+                    // Populate Metadata
+                    displayWoId.innerText = 'WO-' + (insp.JobCard_ID || 'N/A');
+                    displayVehName.innerText = insp.VehicleName || 'Unknown';
+                    if (woSelect) woSelect.value = insp.JobCard_ID || '';
+                    if (vehicleInfo) vehicleInfo.value = insp.VehicleName || 'Unknown';
+
+                    // Populate Checkpoints from DiagnosticData blob
+                    const diagData = insp.DiagnosticData || {};
+                    form.querySelectorAll('.insp-radio').forEach(radio => {
+                        if (diagData[radio.name] === radio.value) {
+                            radio.checked = true;
+                        }
+                    });
+                    const textarea = form.querySelector('textarea[name="results"]');
+                    if (textarea) textarea.value = insp.Results || '';
+
+                    // Lock Form
+                    form.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+
+                    // Force display of saved score
+                    updateRealTimeStatus(insp.HealthScore, insp.HealthCategory);
+                    return; // Avoid double call
+                }
+            }
+            updateRealTimeStatus();
+        });
+
+        async function loadInspections(page = 1) {
+            try {
+                const res = await fetch(`/api/inspections?page=${page}&_t=${Date.now()}`);
+                const rawData = await res.json();
+                currentInspections = rawData.data || rawData.inspections || (Array.isArray(rawData) ? rawData : []);
+                const tbody = document.querySelector('#inspectionsTable tbody');
+                if (!tbody) return;
+                
+                if (currentInspections && currentInspections.length > 0) {
+                    tbody.innerHTML = currentInspections.map(i => `
+                        <tr class="align-middle">
+                            <td class="fw-bold text-primary">INSP-${String(i.Inspection_ID).padStart(3, '0')}</td>
+                            <td>${i.VehicleName || 'Unknown'}</td>
+                            <td><span class="badge bg-light text-dark border">#${i.Vehicle_ID || 'N/A'}</span></td>
+                            <td>WO-${i.JobCard_ID}</td>
+                            <td class="text-muted small">${i.Date}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar ${i.HealthScore >= 80 ? 'bg-success' : (i.HealthScore >= 50 ? 'bg-warning' : 'bg-danger')}" style="width: ${i.HealthScore}%"></div>
+                                    </div>
+                                    <span class="fw-bold small">${i.HealthScore}%</span>
+                                </div>
+                            </td>
+                            <td><span class="status-badge ${String(i.HealthCategory || 'critical').toLowerCase().replace(/ /g, '-')}">${i.HealthCategory || 'Unknown'}</span></td>
+                            <td><small class="text-truncate d-inline-block" style="max-width: 150px;">${i.Results || '—'}</small></td>
+                            <td>
+                                <button class="btn btn-link btn-sm p-0 text-primary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#newInspectionModal" 
+                                        data-id="${i.Inspection_ID}"
+                                        title="View Report">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    renderPagination('pagination-container', rawData, (newPage) => {
+                        loadInspections(newPage);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No inspections found.</td></tr>';
+                    renderPagination('pagination-container', null);
+                }
+            } catch (err) { 
+                console.error('Error loading inspections:', err); 
+                document.querySelector('#inspectionsTable tbody').innerHTML = '<tr><td colspan="9" class="text-center py-4 text-danger">Error loading inspections.</td></tr>';
+            }
+        }
+
+        document.getElementById('inspectionForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Explicitly capture all radio values and form data
+            const data = {};
+            const formData = new FormData(this);
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+
+            // Ensure every radio group is captured (even those with no change)
+            this.querySelectorAll('.insp-radio:checked').forEach(radio => {
+                data[radio.name] = radio.value;
+            });
+
+            data.health_score = calculateHealthScore();
+            data.health_category = finalCategoryDisplay.innerText;
+
+            try {
+                const res = await fetch('/api/inspections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    const modalEl = document.getElementById('newInspectionModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    this.reset();
+                    updateRealTimeStatus();
+                    
+                    toast('Inspection report transmitted successfully ✓', 'success');
+                    
+                    // Instant refresh + backup delayed refresh
+                    loadInspections();
+                    setTimeout(loadInspections, 1000);
+                }
+            } catch (err) { console.error('Error submitting inspection:', err); }
+        });
+
+        loadInitialData();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Manage Users</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css?v=15">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css?v=15">
+    <link rel="stylesheet" href="../../assets/css/tables.css?v=15">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./admin-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Core</div>
+        <ul class="sidebar-menu">
+            <li><a href="./admin-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="active"><a href="./manage-users.html"><i class="bi bi-people"></i> Users</a></li>
+
+        </ul>
+        <div class="sidebar-heading">Modules</div>
+        <ul class="sidebar-menu">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-box-seam"></i> Inventory
+                </a>
+                <ul class="dropdown-menu sidebar-dropdown">
+                    <li><a class="dropdown-item" href="../inventory/inventory-dashboard.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
+                    <li><a class="dropdown-item" href="../inventory/manage-stock.html"><i class="bi bi-box-seam"></i>Manage Stock</a></li>
+                    <li><a class="dropdown-item" href="../inventory/parts-approval.html"><i class="bi bi-check2-square"></i>Parts Requests</a></li>
+                </ul>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-receipt"></i> Finance
+                </a>
+                <ul class="dropdown-menu sidebar-dropdown">
+                    <li><a class="dropdown-item" href="../finance/finance-dashboard.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
+                    <li><a class="dropdown-item" href="../finance/invoices.html"><i class="bi bi-receipt"></i>Invoices</a></li>
+                    <li><a class="dropdown-item" href="../finance/payments.html"><i class="bi bi-credit-card"></i>Payments</a></li>
+                    <li><a class="dropdown-item" href="../finance/reports.html"><i class="bi bi-bar-chart"></i>Reports</a></li>
+                </ul>
+            </li>
+        </ul>        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Manage Users</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#"
+                        class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=U&background=4361ee&color=fff" alt="" class="user-profile-img">
+                        <span class="d-none d-md-inline fw-semibold topbar-username"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Admin / Users</span>
+                    <h1 class="dashboard-title">User Management</h1>
+                </div>
+                <div class="d-flex gap-2">
+                    <input id="adminUserSearch" type="text" class="form-control form-control-sm"
+                        style="width:220px;background:rgba(255,255,255,0.05);border-color:var(--border-color);"
+                        placeholder="Search...">
+                    <button class="btn btn-primary btn-sm" id="btnCreateUser"><i class="bi bi-person-plus me-1"></i> New
+                        User</button>
+                </div>
+            </div>
+
+            <div class="data-table-container" id="adminUsersTable">
+                <div class="data-header-row" style="grid-template-columns: 1.5fr 2.5fr 1fr 2fr 1fr 100px;">
+                    <div>User Name</div>
+                    <div>Email Address</div>
+                    <div>Phone</div>
+                    <div>Address</div>
+                    <div>Role</div>
+                    <div class="text-end">Actions</div>
+                </div>
+                <div class="data-body-container"></div>
+                <div id="pagination-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals (same as admin-dashboard) -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="userModalTitle">New User</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userFormId">
+                        <div class="row mb-3">
+                            <div class="col-6"><label class="form-label">First Name</label><input type="text"
+                                    class="form-control" id="userFormFirstName" required></div>
+                            <div class="col-6"><label class="form-label">Last Name</label><input type="text"
+                                    class="form-control" id="userFormLastName" required></div>
+                        </div>
+                        <div class="mb-3"><label class="form-label">Email</label><input type="email"
+                                class="form-control" id="userFormEmail" required></div>
+                        <div class="mb-3"><label class="form-label" id="userFormPasswordLabel">Password</label><input
+                                type="text" class="form-control" id="userFormPassword" required></div>
+                        <div class="row mb-3">
+                            <div class="col-6"><label class="form-label">Phone</label><input type="text"
+                                    class="form-control" id="userFormPhone"></div>
+                            <div class="col-6"><label class="form-label">Address</label><input type="text"
+                                    class="form-control" id="userFormAddress"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select" id="userFormRole">
+                                <option value="Client">Client</option>
+                                <option value="Technician">Technician</option>
+                                <option value="Manager">Manager</option>
+                                <option value="FinanceManager">Finance Manager</option>
+                                <option value="GeneralManager">General Manager</option>
+                                <option value="ServiceManager">Service Manager</option>
+                                <option value="StockKeeper">Stock Keeper</option>
+                                <option value="DataAnalyst">Data Analyst</option>
+                                <option value="Admin">Admin</option>
+                                <option value="TopManager">Top Manager</option>
+                                <option value="Supplier">Supplier</option>
+                            </select>
+                        </div>
+                        <div id="userError" class="alert alert-danger d-none mt-2"
+                            style="padding:0.5rem; font-size:0.9rem;"></div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" class="btn btn-outline-secondary"
+                                data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/pagination.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script>
+        let allUsers = [];
+
+        // Update avatar with real user initial from session
+        async function updateTopbarAvatar() {
+            try {
+                const res = await fetch('/api/session');
+                if (!res.ok) return;
+                const u = await res.json();
+                if(u && (u.user_id || u.email)) {
+                    const name = u.name || `${u.FirstName || u.firstname || ''} ${u.LastName || u.lastname || ''}`.trim() || u.email || u.Email || 'U';
+                    const img = document.querySelector('.user-profile img');
+                    const nameSpan = document.querySelector('.topbar-username');
+                    
+                    if(img) img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=4361ee&color=fff`;
+                    if(nameSpan) nameSpan.textContent = name.split(' ')[0] || name; // Show first name or full name
+                }
+            } catch(e) { /* silent */ }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTopbarAvatar();
+            loadUsers();
+        });
+
+        let currentUserPage = 1;
+
+        function showPageAlert(msg, type='success') {
+            const alertEl = document.createElement('div');
+            alertEl.className = `alert alert-${type} mb-3 alert-dismissible fade show`;
+            alertEl.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.querySelector('.dashboard-header').after(alertEl);
+            setTimeout(() => alertEl.remove(), 4000);
+        }
+
+        async function loadUsers(page = 1) {
+            currentUserPage = page;
+            const tbody = document.querySelector('.data-body-container');
+            tbody.innerHTML = '<div class="text-center p-3 text-muted">Loading...</div>';
+            try {
+                const res = await fetch(`/api/users?page=${page}`);
+                if (!res.ok) throw new Error("Failed to load users");
+                const data = await res.json();
+                allUsers = data.data || [];
+                renderUsers(allUsers);
+                renderPagination('pagination-container', data, (newPage) => {
+                    loadUsers(newPage);
+                });
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<div class="text-center p-3 text-danger">Error loading users.</div>';
+                renderPagination('pagination-container', null);
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.querySelector('.data-body-container');
+            if (users.length === 0) {
+                tbody.innerHTML = '<div class="text-center p-3 text-muted">No users found.</div>';
+                return;
+            }
+            tbody.innerHTML = users.map(user => {
+                const fullName = `${user.FirstName || ''} ${user.LastName || ''}`.trim();
+                const initials = (user.FirstName?.[0] || '') + (user.LastName?.[0] || '');
+                return `
+                <div class="data-row" style="grid-template-columns: 1.5fr 2.5fr 1fr 2fr 1fr 100px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar bg-primary text-white d-flex align-items-center justify-content-center" style="width:36px;height:36px;border-radius:50%;font-size:14px;font-weight:600;">
+                            ${initials.toUpperCase() || 'U'}
+                        </div>
+                        <span class="fw-semibold">${fullName}</span>
+                    </div>
+                    <div class="text-muted text-break">${user.Email}</div>
+                    <div class="text-muted">${user.Phone || '-'}</div>
+                    <div class="text-muted text-truncate" title="${user.Address || ''}">${user.Address || '-'}</div>
+                    <div><span class="badge" style="background:rgba(99,102,241,0.15);color:var(--primary-color);padding:6px 12px;">${user.Role || 'Unassigned'}</span></div>
+                    <div class="text-end">
+                        <button class="btn btn-sm btn-icon" title="Edit" onclick="openEditUser(${user.User_ID})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-icon text-danger" title="Delete" onclick="deleteUser(${user.User_ID})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('adminUserSearch').addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            renderUsers(allUsers.filter(u =>
+                (u.FirstName && u.FirstName.toLowerCase().includes(q)) ||
+                (u.LastName && u.LastName.toLowerCase().includes(q)) ||
+                u.Email.toLowerCase().includes(q)
+            ));
+        });
+
+        const userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        const form = document.getElementById('userForm');
+
+        document.getElementById('btnCreateUser').addEventListener('click', () => {
+            form.reset();
+            document.getElementById('userFormId').value = '';
+            document.getElementById('userModalTitle').textContent = 'New User';
+            document.getElementById('userFormPassword').required = true;
+            document.getElementById('userFormPasswordLabel').innerHTML = 'Password <span class="text-danger">*</span>';
+            document.getElementById('userError').classList.add('d-none');
+            userModal.show();
+        });
+
+        function openEditUser(id) {
+            const user = allUsers.find(u => u.User_ID === id);
+            if (!user) return;
+            form.reset();
+            document.getElementById('userFormId').value = user.User_ID;
+            document.getElementById('userFormFirstName').value = user.FirstName;
+            document.getElementById('userFormLastName').value = user.LastName;
+            document.getElementById('userFormEmail').value = user.Email;
+            document.getElementById('userFormPhone').value = user.Phone;
+            document.getElementById('userFormAddress').value = user.Address;
+            document.getElementById('userFormRole').value = user.Role;
+            document.getElementById('userModalTitle').textContent = 'Edit User';
+            document.getElementById('userFormPassword').required = false;
+            document.getElementById('userFormPasswordLabel').innerHTML = 'Password <small class="text-muted">(Leave blank to keep current)</small>';
+            document.getElementById('userError').classList.add('d-none');
+            userModal.show();
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('userFormId').value;
+            const errEl = document.getElementById('userError');
+            errEl.classList.add('d-none');
+
+            const payload = {
+                FirstName: document.getElementById('userFormFirstName').value.trim(),
+                LastName: document.getElementById('userFormLastName').value.trim(),
+                Email: document.getElementById('userFormEmail').value.trim(),
+                Password: document.getElementById('userFormPassword').value,
+                Phone: document.getElementById('userFormPhone').value.trim(),
+                Address: document.getElementById('userFormAddress').value.trim(),
+                Role: document.getElementById('userFormRole').value
+            };
+
+            const url = id ? '/api/users/' + id : '/api/users';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'Failed to save user');
+
+                userModal.hide();
+                showPageAlert(id ? 'User updated successfully!' : 'User created successfully!');
+                loadUsers(currentUserPage);
+            } catch (e) {
+                errEl.textContent = e.message;
+                errEl.classList.remove('d-none');
+            }
+        });
+
+        async function deleteUser(id) {
+            if (!confirm("Are you sure you want to delete this user?")) return;
+            try {
+                const res = await fetch('/api/users/' + id, { method: 'DELETE' });
+                if (!res.ok) throw new Error("Failed to delete");
+                showPageAlert('User deleted successfully!');
+                loadUsers(currentUserPage);
+            } catch (e) {
+                showPageAlert("Error deleting user", "danger");
+            }
+        }
+    </script>
+</body>
+
+</html>

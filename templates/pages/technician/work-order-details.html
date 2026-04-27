@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Work Order Details</title>
+    <style>
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        #timeLogTable tbody tr { border-bottom: 1px solid var(--border-color); }
+        #timeLogTable td { vertical-align: middle; padding: 8px 4px; color: var(--text-color); }
+        .assessment-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 800; }
+        dt { color: var(--text-color); opacity: 0.7; }
+        dd { color: var(--text-color); }
+        .card-header h6 { color: var(--text-color); }
+        #wo-notes p { color: var(--text-color); }
+
+        /* Professional Holograph Styles (v6.6) */
+        .diag-modal-lg { max-width: 1080px; }
+        .insp-glass-console {
+            padding: 1.25rem 2.5rem;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4); display: flex; justify-content: space-between; align-items: center;
+        }
+        .diag-orb-v5 {
+            width: 65px; height: 65px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; font-weight: 800; font-size: 1.1rem; box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
+            position: relative; border: 3px solid rgba(255, 255, 255, 0.2); line-height: 1;
+        }
+        .diag-orb-v5 span { font-size: 0.6rem; opacity: 0.8; margin-top: 2px; }
+        .diag-orb-v5.score-high { background: linear-gradient(135deg, #10b981, #059669); }
+        .diag-orb-v5.score-mid { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .diag-orb-v5.score-low { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        
+        .diag-modal-surface { background: rgba(15, 23, 42, 0.98); }
+        [data-theme="light"] .diag-modal-surface { background: #ffffff !important; }
+        
+        .assessment-card-v5 {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 1.25rem; margin-bottom: 0.5rem; height: 100%; transition: all 0.3s ease;
+        }
+        [data-theme="light"] .assessment-card-v5 { background: #f8fafc; border-color: #e2e8f0; }
+        .assessment-card-v5:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); }
+        
+        .assessment-title-v5 h6 { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-color); }
+        .kinetic-grading-group { display: flex; gap: 8px; margin-top: 1rem; }
+        .kinetic-pill {
+            flex: 1; height: 32px; border-radius: 8px; font-weight: 700; font-size: 0.6rem;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.3);
+            letter-spacing: -0.2px;
+        }
+        [data-theme="light"] .kinetic-pill { background: #e2e8f0; border-color: #cbd5e1; color: #64748b; }
+        
+        .v5-group-label {
+            margin: 2rem 0.5rem 1rem; font-size: 0.75rem; font-weight: 800; color: var(--primary-color);
+            display: flex; align-items: center; gap: 1rem; opacity: 0.9;
+        }
+        .v5-group-label::after { content: ''; height: 1px; flex-grow: 1; background: var(--primary-color); opacity: 0.2; }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+        <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="active"><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li><a href="./inspections.html"><i class="bi bi-clipboard-check"></i> Inspections</a></li>
+            <li><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Work Order Details</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Work Orders / Details</span>
+                    <h1 class="dashboard-title">Work Order <span id="wo-id">#—</span></h1>
+                </div>
+                <div id="techActions" class="d-flex gap-2" style="display:none;">
+                    <button class="btn btn-warning" id="startWorkBtn" onclick="logTime('start')" style="display:none;">
+                        <i class="bi bi-play-fill me-1"></i> Start Work
+                    </button>
+                    <button class="btn btn-success" id="endWorkBtn" onclick="logTime('end')" style="display:none;">
+                        <i class="bi bi-stop-fill me-1"></i> End Work
+                    </button>
+                </div>
+                <div id="wo-inline-alert" style="position: absolute; top: 100%; right: 0; z-index: 100; min-width: 200px;"></div>
+                <a href="./parts-request.html" class="btn btn-outline-secondary"><i class="bi bi-box-seam me-2"></i> Request Parts</a>
+            </div>
+            <!-- Top Row: Info & Time Log -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Job Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row g-2 mb-0 small">
+                                <dt class="col-4 text-muted">Vehicle</dt>
+                                <dd class="col-8 fw-semibold" id="wo-vehicle">—</dd>
+                                <dt class="col-4 text-muted">License Plate</dt>
+                                <dd class="col-8 fw-semibold" id="wo-license">—</dd>
+                                <dt class="col-4 text-muted">Service Type</dt>
+                                <dd class="col-8 fw-semibold" id="wo-service">—</dd>
+                                <dt class="col-4 text-muted">Status</dt>
+                                <dd class="col-8" id="wo-status">—</dd>
+                            </dl>
+                            <hr style="border-color:var(--border-color); opacity: 0.2;">
+                            <h6 class="fw-bold mb-1 text-muted small" style="text-transform:uppercase;letter-spacing:.8px;">Client Complaint</h6>
+                            <p class="mb-0 small" id="wo-complaint" style="opacity:0.8;line-height:1.5;">—</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Work Time Log</h6>
+                            <span class="badge bg-primary rounded-pill small" id="total-hours">0.00 hrs</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm small mb-0" id="timeLogTable">
+                                    <thead>
+                                        <tr class="text-muted" style="font-size: 0.75rem;">
+                                            <th>Date</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody style="font-size: 0.8rem;">
+                                        <tr><td colspan="3" class="text-center text-muted">No sessions logged.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Notes & Checklist -->
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 rounded-4 shadow-sm">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Technician Findings & Notes</h6>
+                            <span class="badge bg-light text-muted fw-normal" style="font-size: 0.65rem;">Updated Live</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="wo-notes" class="mb-3" style="min-height:120px; max-height: 400px; overflow-y: auto; border-radius: 12px; background: rgba(0,0,0,0.02); padding: 1rem;"></div>
+                            <form id="addNoteForm" class="bg-light p-2 rounded-3">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control border-0 bg-transparent" placeholder="Type a finding or log entry..." style="box-shadow: none;">
+                                    <button type="submit" class="btn btn-primary px-3 rounded-2 ms-2"><i class="bi bi-send-fill"></i></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 rounded-4 shadow-sm overflow-hidden" style="background: linear-gradient(135deg, var(--card-bg) 0%, rgba(99,102,241,0.05) 100%);">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0">Vehicle Health</h6>
+                            <button class="btn btn-sm btn-link text-decoration-none p-0 fw-bold" id="viewChecklistBtn" style="display:none; font-size: 0.75rem;">
+                                DETAILS <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                        <div class="card-body" id="checklist-container">
+                             <div class="text-center py-2">
+                                <div class="py-3 px-2 rounded-4 border border-dashed mb-2" style="background: rgba(255,255,255,0.2);">
+                                    <i class="bi bi-activity text-primary mb-2 d-block" style="font-size:1.8rem;"></i>
+                                    <p class="text-muted small fw-bold mb-0" id="checklist-summary">Analyzing...</p>
+                                </div>
+                                <p class="text-muted" style="font-size: 0.7rem;">Comprehensive diagnostic vector status</p>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div> <!-- End container-fluid -->
+    </main>
+    <!-- Complete Job & Invoice Modal -->
+    <div class="modal fade" id="completeJobModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Complete Work Order</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="completeJobForm">
+                        <p class="text-muted small mb-4">Please enter the final costs associated with this work order.
+                            This will close the job in the system.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label">Labor Cost ($)</label>
+                            <input type="number" class="form-control" id="laborCost" placeholder="0.00" min="0"
+                                step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Parts & Materials Cost ($)</label>
+                            <input type="number" class="form-control" id="partsCost" placeholder="0.00" min="0"
+                                step="0.01" required>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-outline-secondary"
+                                data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i> Complete
+                                Work Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- High-Density Professional Checklist Modal (v6.5 Holograph) -->
+    <div class="modal fade" id="checklistModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl diag-modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0">
+                    <div class="diag-modal-surface shadow-lg overflow-hidden d-flex flex-column" style="height: 85vh;">
+                        <!-- Sticky Header -->
+                        <div class="insp-glass-console rounded-0 border-0 border-bottom m-0 shadow-none">
+                            <div class="d-flex align-items-center gap-3 w-100">
+                                <div class="diag-orb-v5" id="diagnosticOrb">0<span>%</span></div>
+                                <div class="ms-1 flex-grow-1">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <h5 class="fw-bold mb-0 text-white" style="letter-spacing: -0.5px; font-size: 1.1rem;">DIAGNOSTIC REPORT</h5>
+                                        <div id="finalCategoryDisplay" class="h5 fw-bold mb-0 text-success" style="font-size: 1rem;">Active</div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="badge bg-white text-primary rounded-pill px-2" id="displayWoId" style="font-size: 0.65rem;">WO-#</span>
+                                        <span class="small fw-bold text-white opacity-75" id="displayVehName" style="font-size: 0.75rem;">Vehicle Info</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="modal"></button>
+                        </div>
+                        
+                        <!-- Scrollable Body -->
+                        <div class="flex-grow-1 overflow-y-auto px-4 pb-5" id="checklist-modal-body">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-3 text-muted">Retrieving assessment data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=7"></script>
+    <script>
+        // Inject session data from Django context
+        const userId = "{{ user_data.user_id }}";
+        const userRole = "{{ user_data.role }}";
+
+        const checkpointMapping = {
+            'td': { title: 'Vector 01: Dynamic Stress Test', items: ['Engine Perf', 'Road Handling', 'Braking Sys', 'Steering/Align', 'Trans Shifting', 'Suspension', 'Road Noise', 'Tire Balance'] },
+            'ex': { title: 'Vector 02: Exterior Chassis', items: ['Paint Finish', 'Body Damage', 'Rust Analysis', 'Windshield/Glass', 'Headlights/Signals', 'Mirrors/Bumpers', 'Underbody'] },
+            'el': { title: 'Vector 03: Electrical Ecosystem', items: ['Int Lighting', 'Battery', 'Inst Gauges', 'AC System', 'Heater Op', 'Stereo Sys', 'Wiper Sys', 'Power Seats', 'OBD2 Code Scan'] },
+            'uh': { title: 'Vector 04: Under Hood Analytics', items: ['Fluid Levels', 'Hoses/Belts', 'Air Filter', 'Radiator', 'Oil Leaks', 'Engine Noise'] },
+            'in': { title: 'Vector 05: Interior Audit', items: ['Upholstery', 'Int Trim', 'Windows Op', 'Seats Op', 'Carpet/Mat', 'Inst Panel', 'Headliner', 'Seatbelts'] },
+            'bb': { title: 'Vector 06: Bumper To Bumper', items: ['Wheels/Tires', 'Trunk/Spare', 'Exhaust Sys', 'Warning Lights', 'Owners Manual'] }
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const wId = urlParams.get('id');
+
+        function logTime(action) {
+            const btn = action === 'start' ? document.getElementById('startWorkBtn') : document.getElementById('endWorkBtn');
+            if (!btn) return;
+
+            showInlineAlert('wo-inline-alert', `${action === 'start' ? 'start successful' : 'Work ended'} ✓`);
+            
+            if (action === 'start') {
+                btn.style.display = 'none';
+                document.getElementById('endWorkBtn').style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+            }
+
+            fetch(`/api/log-time?_t=${Date.now()}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobcard_id: wId, action: action })
+            }).then(res => {
+                if (res.ok) {
+                    fetchWO();
+                } else {
+                    res.json().then(err => toast(err.error || 'Failed to log time', 'error'));
+                }
+            }).catch(err => {
+                toast('Network error', 'error');
+            });
+        }
+
+        async function fetchWO() {
+            if (!wId) return;
+            try {
+                const res = await fetch(`/api/work-orders?id=${wId}&_t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const wo = data.work_orders[0];
+                    if (wo) {
+                        document.getElementById('wo-id').textContent = '#' + wo.JobCard_ID;
+                        document.getElementById('wo-vehicle').textContent = `${wo.Make} ${wo.Model}`;
+                        document.getElementById('wo-license').textContent = wo.PlateNumber;
+                        document.getElementById('wo-service').textContent = wo.service_type || wo.ReportedIssues;
+                        
+                        // Render Tech Notes (prioritize technician_notes column)
+                        const notesContainer = document.getElementById('wo-notes');
+                        const rawNotes = (wo.technician_notes || "").trim();
+                        if (rawNotes) {
+                             // Deduplicate identical sequential lines
+                             const lines = rawNotes.split('\n').filter(l => l.trim() !== '');
+                             const uniqueLines = [];
+                             for (let i = 0; i < lines.length; i++) {
+                                 if (i === 0 || lines[i] !== lines[i-1]) {
+                                     uniqueLines.push(lines[i]);
+                                 }
+                             }
+                             notesContainer.innerHTML = uniqueLines.map(line => {
+                                 if (line.startsWith('[')) {
+                                     return `<div class="alert alert-secondary py-2 mb-2 small" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-color);">
+                                                ${line}
+                                             </div>`;
+                                 }
+                                 return `<p class="small mb-1">${line}</p>`;
+                             }).join('');
+                        } else {
+                             notesContainer.innerHTML = '<p class="text-muted small">No technical notes recorded yet.</p>';
+                        }
+
+                        // ── Button Logic (Technician Only) ──────────────────
+                        const techActions = document.getElementById('techActions');
+                        const startBtn = document.getElementById('startWorkBtn');
+                        const endBtn   = document.getElementById('endWorkBtn');
+
+                        const hasActiveSession = wo.time_logs && wo.time_logs.some(l => !l.end);
+
+                        if (userRole === 'technician') {
+                            techActions.style.display = 'flex';
+
+                            if (wo.Status === 'Pending' || (wo.Status === 'In Progress' && !hasActiveSession)) {
+                                // Can start
+                                startBtn.style.display = 'inline-flex';
+                                endBtn.style.display   = 'none';
+                            } else if (wo.Status === 'In Progress' && hasActiveSession) {
+                                // Timer running → show End Work
+                                startBtn.style.display = 'none';
+                                endBtn.style.display   = 'inline-flex';
+                            } else {
+                                // Completed / Closed — hide both
+                                startBtn.style.display = 'none';
+                                endBtn.style.display   = 'none';
+                            }
+                        } else {
+                            techActions.style.display = 'none';
+                        }
+
+                        // Render Time Logs
+                        document.getElementById('total-hours').textContent = (wo.total_hours || 0).toFixed(2) + ' hrs';
+                        const timeLogTable = document.querySelector('#timeLogTable tbody');
+                        if (wo.time_logs && wo.time_logs.length > 0) {
+                            timeLogTable.innerHTML = wo.time_logs.map(log => {
+                                const date = log.start ? new Date(log.start).toLocaleDateString() : 'N/A';
+                                const duration = log.total ? log.total.toFixed(2) + ' hrs' : (log.end ? '0.00' : 'Active...');
+                                const statusClass = log.end ? 'text-success' : 'text-warning blink';
+                                return `<tr>
+                                    <td>${date}</td>
+                                    <td>${duration}</td>
+                                    <td class="${statusClass} fw-bold">${log.end ? 'Closed' : 'Running'}</td>
+                                </tr>`;
+                            }).join('');
+                        } else {
+                            timeLogTable.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No sessions logged.</td></tr>';
+                        }
+
+                        // Render Professional Holograph Checklist in Modal
+                        const modalContent = document.getElementById('checklist-modal-body');
+                        const summaryText = document.getElementById('checklist-summary');
+                        const viewBtn = document.getElementById('viewChecklistBtn');
+                        const orb = document.getElementById('diagnosticOrb');
+                        const categoryText = document.getElementById('finalCategoryDisplay');
+                        
+                        document.getElementById('displayWoId').textContent = 'WO-' + wo.JobCard_ID;
+                        document.getElementById('displayVehName').textContent = `${wo.Make} ${wo.Model} (${wo.PlateNumber})`;
+
+                        if (wo.inspection && wo.inspection.checklist) {
+                            const cl = wo.inspection.checklist;
+                            const score = wo.inspection.health_score || 0;
+                            const category = wo.inspection.health_category || 'Assessed';
+                            
+                            // Update Orb & Header
+                            if (orb) {
+                                orb.innerHTML = `${score}<span>%</span>`;
+                                orb.className = 'diag-orb-v5';
+                                if (score >= 85) orb.classList.add('score-high');
+                                else if (score >= 60) orb.classList.add('score-mid');
+                                else orb.classList.add('score-low');
+                            }
+                            if (categoryText) {
+                                categoryText.textContent = category.toUpperCase();
+                                categoryText.className = 'h5 fw-bold mb-0 ' + (score >= 85 ? 'text-success' : (score >= 60 ? 'text-warning' : 'text-danger'));
+                            }
+
+                            // Build HTML Grid
+                            let reportHtml = '';
+                            for (const [prefix, config] of Object.entries(checkpointMapping)) {
+                                let cards = '';
+                                config.items.forEach((item, idx) => {
+                                    const key = `${prefix}${idx + 1}`;
+                                    const val = cl[key] || 'Good';
+                                    
+                                    const getPillStyle = (v) => {
+                                        if (val !== v) return '';
+                                        const colors = { 'Good': '#10b981', 'Fair': '#f59e0b', 'Poor': '#ef4444' };
+                                        return `background: ${colors[v]}; color: white; border: none; opacity: 1;`;
+                                    };
+
+                                    cards += `
+                                        <div class="col-6 col-md-3">
+                                            <div class="assessment-card-v5">
+                                                <div class="assessment-title-v5"><h6>${item}</h6></div>
+                                                <div class="kinetic-grading-group">
+                                                    <div class="kinetic-pill" style="${getPillStyle('Good')}">GOOD</div>
+                                                    <div class="kinetic-pill" style="${getPillStyle('Fair')}">FAIR</div>
+                                                    <div class="kinetic-pill" style="${getPillStyle('Poor')}">POOR</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                reportHtml += `
+                                    <div class="v5-group-label">${config.title.toUpperCase()}</div>
+                                    <div class="row g-2">${cards}</div>
+                                `;
+                            }
+
+                            if (wo.inspection.results) {
+                                reportHtml += `
+                                    <div class="v5-group-label text-info">OBSERVATIONS & FINDINGS</div>
+                                    <div class="assessment-card-v5 mx-1" style="background: rgba(0,0,0,0.1); border-color: rgba(99,102,241,0.3);">
+                                        <p class="mb-0 text-muted" style="font-size: 0.9rem; line-height: 1.6;">${wo.inspection.results}</p>
+                                    </div>
+                                `;
+                            }
+
+                            if (modalContent) modalContent.innerHTML = reportHtml;
+                            if (summaryText) summaryText.textContent = `Inspection Report Available (${score}% Health Score)`;
+                            if (viewBtn) {
+                                viewBtn.style.display = 'inline-flex';
+                                // Add explicit click handler as fallback for data-attributes
+                                viewBtn.onclick = () => {
+                                   const m = bootstrap.Modal.getOrCreateInstance(document.getElementById('checklistModal'));
+                                   m.show();
+                                };
+                            }
+                        } else {
+                            if (summaryText) summaryText.textContent = 'No inspection data linked to this order.';
+                            if (viewBtn) viewBtn.style.display = 'none';
+                        }
+
+
+                        document.getElementById('wo-complaint').textContent = wo.ReportedIssues ? wo.ReportedIssues.split('\n')[0] : 'No complaint listed.';
+                        
+                        const statusEl = document.getElementById('wo-status');
+                        const stClass = { 
+                            'In Progress': 'in-progress', 
+                            'Completed': 'completed', 
+                            'Pending': 'pending', 
+                            'Closed': 'completed'
+                        };
+                        statusEl.innerHTML = `<span class="status-badge ${stClass[wo.Status] || 'pending'}">${wo.Status}</span>`;
+
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        window.updateStatus = function(newStatus) {
+            toast('Updating status...', 'info');
+            fetch('/api/update-wo-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobcard_id: wId, status: newStatus })
+            }).then(res => {
+                if (res.ok) {
+                    toast('Status updated successfully', 'success');
+                    fetchWO();
+                } else {
+                    res.json().then(err => toast(err.error || 'Update failed', 'error'));
+                }
+            }).catch(err => toast('Network error', 'error'));
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWO();
+            const noteForm = document.getElementById('addNoteForm');
+            if (noteForm) {
+                noteForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const txt = (noteForm.querySelector('textarea') || noteForm.querySelector('input'))?.value?.trim();
+                    if (!txt) return;
+
+                    fetch('/api/update-wo-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jobcard_id: wId, note: txt })
+                    }).then(res => {
+                        if (res.ok) {
+                            toast('Note added successfully', 'success');
+                            noteForm.reset();
+                            fetchWO();
+                        } else {
+                            toast('Failed to add note', 'error');
+                        }
+                    }).catch(err => toast('Network error', 'error'));
+                });
+            }
+
+            const completeForm = document.getElementById('completeJobForm');
+            if (completeForm) {
+                completeForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (!wId) {
+                        toast("No Work Order ID found in URL.", 'error');
+                        return;
+                    }
+
+                    const labor = document.getElementById('laborCost').value;
+                    const parts = document.getElementById('partsCost').value;
+
+                    try {
+                        const res = await fetch('/api/complete-wo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                jobcard_id: wId,
+                                labor_cost: parseFloat(labor),
+                                parts_cost: parseFloat(parts)
+                            })
+                        });
+
+                        if (res.ok) {
+                            toast('Work order completed successfully!', 'success');
+                            setTimeout(() => { window.location.href = './work-orders.html'; }, 1000);
+                        } else {
+                            const err = await res.json();
+                            toast('Error: ' + (err.error || 'Failed to complete job'), 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toast('Network Error', 'error');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

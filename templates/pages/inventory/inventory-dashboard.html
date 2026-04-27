@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Inventory Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./inventory-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        {% if user_data.role == 'admin' %}
+        <div class="sidebar-heading admin-only">Admin</div>
+        <ul class="sidebar-menu admin-only">
+            <li><a href="../admin/admin-dashboard.html"><i class="bi bi-arrow-left-circle"></i> Back to Admin</a></li>
+        </ul>
+        {% endif %}
+        <div class="sidebar-heading">Inventory</div>
+        <ul class="sidebar-menu">
+            <li class="active"><a href="./inventory-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./manage-stock.html"><i class="bi bi-box-seam"></i> Manage Stock</a></li>
+            <li><a href="./parts-approval.html"><i class="bi bi-check2-square"></i> Parts Requests</a></li>
+            <li><a href="./supplier-orders.html"><i class="bi bi-cart"></i> Supplier Orders</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Inventory Dashboard</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#"
+                        class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="../../login.html"><i
+                                    class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Inventory / Overview</span>
+                    <h1 class="dashboard-title">Inventory Overview</h1>
+                </div>
+                <a href="./manage-stock.html?action=add" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>
+                    Add
+                    Stock</a>
+            </div>
+
+            <!-- Low-stock alert -->
+            <div id="lowStockAlert" class="stock-alert-banner d-none">
+                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                <span id="lowStockMsg"></span>
+            </div>
+
+            <!-- KPI Pods -->
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Total parts</div>
+                        <div class="kpi-value" id="totalParts">0</div>
+                        <div class="kpi-trend"><i class="bi bi-boxes"></i> Unique items</div>
+                        <i class="bi bi-box-seam kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Stock Value</div>
+                        <div class="kpi-value" id="stockValue">$0</div>
+                        <div class="kpi-trend positive"><i class="bi bi-graph-up-arrow"></i> At cost price</div>
+                        <i class="bi bi-currency-dollar kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Low Stock Items</div>
+                        <div class="kpi-value" id="lowStockItems">0</div>
+                        <div class="kpi-trend negative"><i class="bi bi-exclamation-triangle"></i> Need reorder</div>
+                        <i class="bi bi-exclamation-triangle kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Pending Requests</div>
+                        <div class="kpi-value">3</div>
+                        <div class="kpi-trend pending"><i class="bi bi-clock"></i> Awaiting approval</div>
+                        <i class="bi bi-clipboard-list kpi-icon-overlay"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Table -->
+            <div class="card border-0 rounded-4">
+                <div
+                    class="card-header bg-transparent border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Current Stock Levels</h6>
+                    <input id="invSearch" type="text" class="form-control form-control-sm"
+                        style="width:200px;border-color:var(--border-color);"
+                        placeholder="Search items...">
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="inventoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Item #</th>
+                                    <th>Part Name</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Min Stock</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <script>
+        // Update avatar with real user initial from session
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardData();
+        });
+
+        let allItems = [];
+
+        async function loadDashboardData() {
+            try {
+                const res = await fetch('/api/inventory?page_size=100');
+                if (!res.ok) throw new Error('Failed to load');
+                const json = await res.json();
+
+                allItems = json.data || (Array.isArray(json) ? json : []);
+
+                // Update KPIs with accurate backend data
+                document.getElementById('totalParts').textContent = json.total_items || allItems.length;
+                document.getElementById('stockValue').textContent = '$' + parseInt(json.total_stock_value || 0).toLocaleString();
+                
+                const lowStockCount = json.low_stock_count !== undefined ? json.low_stock_count : 0;
+                document.getElementById('lowStockItems').textContent = lowStockCount;
+
+                const alertEl = document.getElementById('lowStockAlert');
+                const alertMsg = document.getElementById('lowStockMsg');
+
+                if (lowStockCount > 0) {
+                    alertEl.classList.remove('d-none');
+                    alertMsg.innerHTML = `⚠️ Warning: ${lowStockCount} items are low on stock! — <a href="./manage-stock.html?filter=lowstock" style="color:inherit;text-decoration:underline;">Review now</a>`;
+                } else {
+                    alertEl.classList.add('d-none');
+                }
+
+                renderTable(allItems);
+            } catch (e) {
+                console.error("Error loading dashboard data", e);
+                document.querySelector('#inventoryTable tbody').innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error loading inventory.</td></tr>`;
+            }
+        }
+
+        function renderTable(items) {
+            const tbody = document.querySelector('#inventoryTable tbody');
+            if (!items.length) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No items found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => {
+                const isLow = parseInt(item.StockQty) <= parseInt(item.MinStockLevel);
+                const rowStyle = isLow ? 'background:rgba(220,53,69,0.18);border-left:3px solid #dc3545;' : '';
+                const qtyStyle = isLow ? 'color:#ff6b6b;font-weight:700;' : '';
+                const badge = isLow ? '<span class="badge bg-danger ms-1" style="font-size:10px">LOW</span>' : '';
+
+                return `
+                <tr style="${rowStyle}">
+                    <td>${item.ItemNumber}</td>
+                    <td>${item.Name}${badge}</td>
+                    <td style="${qtyStyle}">${item.StockQty}</td>
+                    <td>$${parseInt(item.UnitPrice)}</td>
+                    <td>${item.MinStockLevel}</td>
+                    <td>
+                        <a href="./manage-stock.html?edit=${item.Item_ID}" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-up-right"></i> Manage</a>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        document.getElementById('invSearch').addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            renderTable(allItems.filter(i =>
+                i.Name.toLowerCase().includes(q) ||
+                String(i.ItemNumber).includes(q)
+            ));
+        });
+    </script>
+</body>
+
+</html>

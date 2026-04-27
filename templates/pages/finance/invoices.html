@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Invoice Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/tables.css">
+    <style>
+        /* ── Premium Smart Invoice Modal ── */
+        .premium-modal .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+        .premium-modal .modal-header {
+            padding: 1.5rem 2rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .premium-modal .modal-title {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+        }
+        .premium-modal .modal-body {
+            padding: 2rem;
+        }
+
+        /* Sleek Inputs */
+        .premium-modal .form-control {
+            background: rgba(var(--primary-rgb), 0.04);
+            border: 1px solid rgba(var(--primary-rgb), 0.1);
+            border-radius: 14px;
+            padding: 0.8rem 1.25rem;
+            font-weight: 500;
+        }
+        .premium-modal .form-control:focus {
+            background: rgba(var(--primary-rgb), 0.08);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.15);
+        }
+        .premium-modal .input-group-text {
+            background: rgba(var(--primary-rgb), 0.1);
+            border: 1px solid rgba(var(--primary-rgb), 0.1);
+            border-radius: 14px 0 0 14px;
+            color: var(--primary-color);
+        }
+
+        /* Browse Button Refresh */
+        .browse-jobs-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-weight: 700;
+            padding: 0 1.5rem;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
+        }
+        .browse-jobs-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(var(--primary-rgb), 0.5);
+            filter: brightness(1.1);
+        }
+
+        /* ── Modified Job Picker ── */
+        .job-picker-card { 
+            background: rgba(var(--primary-rgb), 0.04); 
+            border: 1px solid rgba(var(--primary-rgb), 0.15); 
+            border-radius: 20px;
+            margin-top: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        .job-picker-header {
+            background: rgba(var(--primary-rgb), 0.1);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(var(--primary-rgb), 0.1);
+        }
+        .job-picker-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary-color);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .job-picker-table { width: 100%; }
+        .job-picker-table tr { 
+            border-bottom: 1px solid rgba(var(--primary-rgb), 0.05);
+            transition: all 0.2s;
+        }
+        .job-picker-table tr:hover { background: rgba(var(--primary-rgb), 0.08); }
+        .job-picker-table td { padding: 1.2rem 1.5rem; }
+        
+        .job-picker-id { 
+            color: var(--primary-color); 
+            font-weight: 800; 
+            font-size: 1.1rem; 
+        }
+        .job-picker-client { 
+            font-weight: 700; 
+            font-size: 1rem; 
+            color: var(--text-color);
+        }
+        .job-picker-vehicle { 
+            font-size: 0.8rem; 
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./finance-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i> IVHEMMS</a>
+        {% if user_data.role == 'admin' %}
+        <div class="sidebar-heading admin-only">Admin</div>
+        <ul class="sidebar-menu admin-only">
+            <li><a href="../admin/admin-dashboard.html"><i class="bi bi-arrow-left-circle"></i> Back to Admin</a></li>
+        </ul>
+        {% endif %}
+        <div class="sidebar-heading">Finance</div>
+        <ul class="sidebar-menu">
+            <li><a href="./finance-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="active"><a href="./invoices.html"><i class="bi bi-receipt"></i> Invoices</a></li>
+            <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
+            <li><a href="./reports.html"><i class="bi bi-bar-chart"></i> Reports</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Invoice Management</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile" data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=Finance&background=d946ef&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName">Finance Manager</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Finance / Invoices</span>
+                    <h1 class="dashboard-title">Invoice Management</h1>
+                </div>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createInvModal">
+                    <i class="bi bi-plus me-1"></i> Create Invoice
+                </button>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Total Invoices</div>
+                        <div class="kpi-value" id="kpiTotal">—</div>
+                        <i class="bi bi-receipt kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Paid</div>
+                        <div class="kpi-value" id="kpiPaid">—</div>
+                        <i class="bi bi-check-circle kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Unpaid</div>
+                        <div class="kpi-value" id="kpiUnpaid">—</div>
+                        <i class="bi bi-clock kpi-icon-overlay"></i>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="kpi-pod">
+                        <div class="kpi-label">Revenue Collected</div>
+                        <div class="kpi-value" id="kpiRevenue">—</div>
+                        <i class="bi bi-cash-stack kpi-icon-overlay"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 rounded-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="invoicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Client</th>
+                                    <th>Work Order</th>
+                                    <th>Labor</th>
+                                    <th>Parts</th>
+                                    <th>Tax</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesTbody">
+                                <tr><td colspan="10" class="text-center text-muted py-5"><span class="spinner-border spinner-border-sm me-2"></span>Loading invoices...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-container"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== Create Invoice Modal ===== -->
+    <div class="modal fade premium-modal" id="createInvModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-receipt-cutoff me-2"></i>Create Smart Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Step 1: Enter JobCard ID -->
+                    <div class="row g-4 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label text-uppercase small opacity-75" style="letter-spacing: 1px;">Work Order / JobCard ID</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                                <input type="number" id="modalJobCardId" class="form-control" placeholder="Search ID..." oninput="loadInvoicePreview()">
+                                <button class="browse-jobs-btn" onclick="toggleJobPicker()">
+                                    <i class="bi bi-grid-3x3-gap me-2"></i>Browse Jobs
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-secondary w-100 py-2 rounded-4 border-dashed" onclick="loadInvoicePreview()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Refresh Preview
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expandable Job Picker -->
+                    <div id="jobPickerSection" class="d-none animate__animated animate__fadeIn">
+                        <div class="job-picker-card">
+                            <div class="job-picker-header">
+                                <h6 class="job-picker-title"><i class="bi bi-collection-play me-2"></i>Active Work Orders</h6>
+                                <button type="button" class="btn-close" style="font-size: 0.7rem;" onclick="toggleJobPicker()"></button>
+                            </div>
+                            <div id="uninvoicedJobsList" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview section (hidden until loaded) -->
+                    <div id="invPreview" class="d-none">
+                        <div class="inv-preview-card mt-4">
+                            <!-- Meta header -->
+                            <div class="inv-preview-header">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <div>
+                                        <div class="small text-muted text-uppercase fw-bold" style="letter-spacing:1px;font-size:.7rem;opacity:0.5;">Summary</div>
+                                        <div class="fw-bold fs-5">Charges Breakdown</div>
+                                    </div>
+                                    <span id="prevInspBadge" class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 px-3 py-2" style="font-size:.7rem;">
+                                        <i class="bi bi-shield-check me-1"></i>With Inspection
+                                    </span>
+                                </div>
+                                <div class="inv-modal-meta">
+                                    <div class="meta-item">
+                                        <span class="meta-label">Work Order ID</span>
+                                        <span class="meta-value" id="prevWoId">—</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Customer Name</span>
+                                        <span class="meta-value" id="prevClientName">—</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Vehicle Details</span>
+                                        <span class="meta-value" id="prevVehicle">—</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">Document Date</span>
+                                        <span class="meta-value" id="prevDate">—</span>
+                                    </div>
+                                </div>
+                            <!-- Itemized Billing Table -->
+                            <div class="table-responsive mt-3">
+                                <table class="table table-borderless align-middle mb-0" style="background: rgba(var(--primary-rgb), 0.02); border-radius: 16px;">
+                                    <thead class="small text-uppercase fw-bold opacity-50" style="letter-spacing: 1px; border-bottom: 1px solid var(--border-color);">
+                                        <tr>
+                                            <th class="ps-4 py-3">Description</th>
+                                            <th class="text-end pe-4 py-3">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoiceItemsTableBody">
+                                        <tr id="rowLabor">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-primary bg-opacity-10 rounded-3 text-primary">
+                                                        <i class="bi bi-gear-fill"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">Service & Labor</div>
+                                                        <small class="text-muted">Standard workshop rate</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold" id="prevLabor">EGP 0.00</td>
+                                        </tr>
+                                        <tr id="prevInspRow">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-info bg-opacity-10 rounded-3 text-info">
+                                                        <i class="bi bi-clipboard-pulse"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">Vehicle Inspection</div>
+                                                        <small class="text-muted">Multi-point diagnostic fee</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold" id="prevInspFee">EGP 0.00</td>
+                                        </tr>
+                                        <tr id="rowParts">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-warning bg-opacity-10 rounded-3 text-warning">
+                                                        <i class="bi bi-boxes"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">Parts & Consumables</div>
+                                                        <small class="text-muted">Aggregated parts cost</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold" id="prevSubParts">EGP 0.00</td>
+                                        </tr>
+                                        <tr id="rowTax">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-secondary bg-opacity-10 rounded-3 text-secondary">
+                                                        <i class="bi bi-percent"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold">Sales Tax</div>
+                                                        <small class="text-muted">Government standard (14%)</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold" id="prevTax">EGP 0.00</td>
+                                        </tr>
+                                        <tr id="rowDiscount" style="background: rgba(22, 163, 74, 0.05);">
+                                            <td class="ps-4 py-3">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-success bg-opacity-10 rounded-3 text-success">
+                                                        <i class="bi bi-tag-fill"></i>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="fw-bold">Discount Applied</div>
+                                                        <div class="d-flex align-items-center gap-2 mt-1">
+                                                            <input type="number" id="modalDiscount" class="form-control form-control-sm text-center" style="width: 70px; border-radius: 8px;" placeholder="0" min="0" max="100" value="0">
+                                                            <small class="text-muted">% off total</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-end pe-4 fw-bold text-success" id="prevDiscountAmt">EGP 0.00</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); color: white;">
+                                            <td class="ps-4 py-3 rounded-start-bottom">
+                                                <div class="fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.75rem;">Grand Total Amount</div>
+                                            </td>
+                                            <td class="text-end pe-4 py-3 rounded-end-bottom">
+                                                <div class="fs-4 fw-800" id="prevTotal">EGP 0.00</div>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        <!-- Due Date -->
+                        <div class="mt-4">
+                            <label class="form-label text-uppercase small opacity-75" style="letter-spacing:1px;">Expected Payment Date (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                                <input type="date" id="modalDueDate" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="invPreviewError" class="alert alert-danger rounded-4 mt-4 animate__animated animate__headShake d-none"></div>
+                    <div id="invPreviewLoading" class="text-center mt-4 d-none">
+                        <div class="spinner-grow text-primary" role="status"></div>
+                        <div class="mt-2 small text-primary fw-bold">Generating Live Preview...</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-5">
+                        <button type="button" class="btn btn-outline-secondary px-4 rounded-4" data-bs-dismiss="modal">Discard</button>
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-4 shadow-sm" id="createInvBtn" onclick="createInvoice()" disabled>
+                            <i class="bi bi-send-check-fill me-2"></i>Finalize & Create Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/pagination.js"></script>
+    <script src="../../assets/js/main.js?v=5"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <script>
+        let previewData = null;
+
+
+        // Load user info
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInvoices();
+        });
+
+        document.getElementById('createInvModal').addEventListener('hidden.bs.modal', () => {
+            previewData = null;
+            document.getElementById('modalJobCardId').value = '';
+            document.getElementById('modalDiscount').value = '0';
+            document.getElementById('modalDueDate').value = '';
+            document.getElementById('invPreview').classList.add('d-none');
+            document.getElementById('invPreviewError').classList.add('d-none');
+            document.getElementById('createInvBtn').disabled = true;
+            document.getElementById('jobPickerSection').classList.add('d-none');
+        });
+
+        function toggleJobPicker() {
+            const section = document.getElementById('jobPickerSection');
+            if (section.classList.contains('d-none')) {
+                section.classList.remove('d-none');
+                loadUninvoicedJobs();
+            } else {
+                section.classList.add('d-none');
+            }
+        }
+
+        async function loadUninvoicedJobs() {
+            const container = document.getElementById('uninvoicedJobsList');
+            container.innerHTML = '<div class="text-center py-5"><div class="spinner-border spinner-border-sm text-primary"></div><div class="mt-2 small opacity-50">Searching for completed jobs...</div></div>';
+            try {
+                const res = await fetch(`/api/admin/uninvoiced-jobcards?_t=${Date.now()}`);
+                const data = await res.json();
+                const jobs = data.data || data; // Handle both paginated and direct array
+
+                if (!res.ok || !jobs || !jobs.length) {
+                    container.innerHTML = `
+                        <div class="empty-picker-state text-center">
+                            <i class="bi bi-folder2-open empty-picker-icon"></i>
+                            <div class="empty-picker-text">No pending completed jobs</div>
+                            <div class="empty-picker-subtext">Mark technician tasks as "Completed" to see them here.</div>
+                        </div>
+                    `;
+                    return;
+                }
+                container.innerHTML = `
+                    <table class="job-picker-table">
+                        <thead>
+                            <tr>
+                                <th>Work Order</th>
+                                <th>Customer & Vehicle</th>
+                                <th class="text-end pe-4">Select</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${jobs.map(job => `
+                                <tr onclick="selectJob(${job.JobCard_ID})">
+                                    <td>
+                                        <div class="job-picker-id"><i class="bi bi-hash"></i>${job.JobCard_ID}</div>
+                                    </td>
+                                    <td>
+                                        <div class="job-picker-client">${job.ClientName}</div>
+                                        <div class="job-picker-vehicle"><i class="bi bi-car-front"></i>${job.Vehicle}</div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-primary rounded-pill px-3" style="font-size: 0.72rem; font-weight: 600;">
+                                            <i class="bi bi-plus-lg me-1"></i>Select
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (e) {
+                container.innerHTML = '<div class="empty-picker-state text-danger"><i class="bi bi-exclamation-triangle empty-picker-icon"></i><div class="empty-picker-text">Error loading data</div></div>';
+            }
+        }
+
+        function selectJob(id) {
+            document.getElementById('modalJobCardId').value = id;
+            document.getElementById('jobPickerSection').classList.add('d-none');
+            loadInvoicePreview();
+        }
+
+        async function loadInvoices(page = 1) {
+            try {
+                const res = await fetch(`/api/admin/invoices?page=${page}&_t=${Date.now()}`);
+                const data = await res.json();
+                if (!res.ok) { renderError(data.error||'Failed'); return; }
+                
+                renderTable(data.data || []);
+                renderKPI(data);
+                renderPagination('pagination-container', data, (newPage) => {
+                    loadInvoices(newPage);
+                });
+            } catch (e) {
+                renderError('Network error');
+            }
+        }
+
+        function renderKPI(data) {
+            document.getElementById('kpiTotal').textContent = data.total_count || 0;
+            document.getElementById('kpiPaid').textContent = data.paid_count || 0;
+            document.getElementById('kpiUnpaid').textContent = data.unpaid_count || 0;
+            const rev = data.revenue_collected || 0;
+            document.getElementById('kpiRevenue').textContent = `EGP ${rev.toLocaleString(undefined,{minimumFractionDigits:2})}`;
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('invoicesTbody');
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-5">No invoices found.</td></tr>'; return; }
+            tbody.innerHTML = data.map(inv => `
+                <tr>
+                    <td class="fw-bold">INV-${String(inv.Invoice_ID).padStart(3,'0')}</td>
+                    <td>
+                        <div class="fw-semibold">${inv.ClientName || '—'}</div>
+                        <small class="text-muted">${inv.ClientEmail || ''}</small>
+                    </td>
+                    <td>${inv.JobCard_ID ? `WO-${inv.JobCard_ID}` : '—'}</td>
+                    <td class="text-muted small">EGP ${parseFloat(inv.SubtotalLabor||0).toFixed(2)}</td>
+                    <td class="text-muted small">EGP ${parseFloat(inv.SubtotalParts||0).toFixed(2)}</td>
+                    <td class="text-muted small">EGP ${parseFloat(inv.Tax||0).toFixed(2)}</td>
+                    <td class="fw-bold">EGP ${parseFloat(inv.Total||0).toFixed(2)}</td>
+                    <td><span class="badge badge-${(inv.Status||'').toLowerCase()}">${inv.Status||'—'}</span></td>
+                    <td class="text-muted small">${inv.InvoiceDate || '—'}</td>
+                    <td class="text-center">
+                        ${inv.Status !== 'Paid' ? `<button class="btn btn-xs btn-outline-success" onclick="markPaid(${inv.Invoice_ID}, ${inv.User_ID})" title="Mark as Paid"><i class="bi bi-check-circle"></i></button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderError(msg) {
+            document.getElementById('invoicesTbody').innerHTML = `<tr><td colspan="10" class="text-center text-danger py-5">${msg}</td></tr>`;
+        }
+
+        async function loadInvoicePreview() {
+            const id = document.getElementById('modalJobCardId').value.trim();
+            if (!id) { alert('Please enter a JobCard ID'); return; }
+
+            document.getElementById('invPreview').classList.add('d-none');
+            document.getElementById('invPreviewError').classList.add('d-none');
+            document.getElementById('invPreviewLoading').classList.remove('d-none');
+            document.getElementById('createInvBtn').disabled = true;
+            previewData = null;
+
+            try {
+                const res = await fetch(`/api/invoice-preview?jobcard_id=${id}`);
+                const data = await res.json();
+                document.getElementById('invPreviewLoading').classList.add('d-none');
+                if (!res.ok) {
+                    document.getElementById('invPreviewError').textContent = data.error || 'Not found';
+                    document.getElementById('invPreviewError').classList.remove('d-none');
+                    return;
+                }
+                previewData = data;
+                // Set min date to today
+                const today = new Date().toISOString().split('T')[0];
+                const dateInput = document.getElementById('modalDueDate');
+                if (dateInput) dateInput.min = today;
+
+                // Populate meta
+                document.getElementById('prevWoId').textContent = `WO-${data.JobCard_ID}`;
+                document.getElementById('prevClientName').textContent = data.ClientName || data.ClientEmail;
+                document.getElementById('prevVehicle').textContent = data.vehicle || '—';
+                document.getElementById('prevDate').textContent = new Date().toLocaleDateString();
+                // Inspection badge
+                const inspBadge = document.getElementById('prevInspBadge');
+                const inspRow = document.getElementById('prevInspRow');
+                if (data.has_inspection) {
+                    inspBadge.classList.remove('d-none');
+                    inspRow.classList.remove('d-none');
+                    document.getElementById('prevInspFee').textContent = `EGP ${parseFloat(data.inspection_fee).toFixed(2)}`;
+                } else {
+                    inspBadge.classList.add('d-none');
+                    inspRow.classList.add('d-none');
+                }
+                // Charge rows
+                document.getElementById('prevLabor').textContent = `EGP ${parseFloat(data.labor_price).toFixed(2)}`;
+                document.getElementById('prevSubParts').textContent = `EGP ${parseFloat(data.subtotal_parts).toFixed(2)}`;
+                document.getElementById('prevTax').textContent = `EGP ${parseFloat(data.tax).toFixed(2)}`;
+                document.getElementById('prevTotal').textContent = `EGP ${parseFloat(data.total).toFixed(2)}`;
+                document.getElementById('prevDiscountAmt').textContent = 'EGP 0.00';
+                document.getElementById('modalDiscount').value = '0';
+                document.getElementById('invPreview').classList.remove('d-none');
+                document.getElementById('createInvBtn').disabled = false;
+                updateTotalWithDiscount();
+            } catch (e) {
+                document.getElementById('invPreviewLoading').classList.add('d-none');
+                document.getElementById('invPreviewError').textContent = 'Network error loading preview.';
+                document.getElementById('invPreviewError').classList.remove('d-none');
+            }
+        }
+
+        function updateTotalWithDiscount() {
+            if (!previewData) return;
+            const discountPct = Math.min(100, Math.max(0, parseFloat(document.getElementById('modalDiscount').value || 0)));
+            const baseTotal = parseFloat(previewData.total);
+            const discountAmt = baseTotal * discountPct / 100;
+            const finalTotal = Math.max(0, baseTotal - discountAmt);
+            document.getElementById('prevDiscountAmt').textContent = discountPct > 0 ? `- EGP ${discountAmt.toFixed(2)}` : 'EGP 0.00';
+            document.getElementById('prevTotal').textContent = `EGP ${finalTotal.toFixed(2)}`;
+        }
+
+        document.getElementById('modalDiscount').addEventListener('input', updateTotalWithDiscount);
+
+        async function createInvoice() {
+            if (!previewData) return;
+            const btn = document.getElementById('createInvBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+            try {
+                const res = await fetch('/api/admin/invoices', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        jobcard_id: previewData.JobCard_ID,
+                        // Send discount as EGP amount (calculated from the % entered)
+                        discount: (() => {
+                            const pct = Math.min(100, Math.max(0, parseFloat(document.getElementById('modalDiscount').value || 0)));
+                            return (parseFloat(previewData.total) * pct / 100).toFixed(2);
+                        })(),
+                        due_date: document.getElementById('modalDueDate').value || null
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('createInvModal')).hide();
+                    loadInvoices();
+                    toast(`Invoice INV-${String(data.Invoice_ID).padStart(3,'0')} created! Total: EGP ${data.Total}`, 'success');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to create invoice'));
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check2 me-1"></i> Confirm & Create Invoice';
+                }
+            } catch (e) {
+                alert('Network error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2 me-1"></i> Confirm & Create Invoice';
+            }
+        }
+
+        async function markPaid(invoiceId, userId) {
+            if (!confirm('Are you sure you want to mark this invoice as Paid?')) return;
+            
+            // Show loading state if possible
+            const row = document.querySelector(`button[onclick*="markPaid(${invoiceId}"]`)?.closest('tr');
+            if (row) row.style.opacity = '0.5';
+
+            try {
+                const res = await fetch(`/api/admin/invoices/${invoiceId}/mark-paid`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({invoice_id: invoiceId})
+                });
+                
+                const d = await res.json();
+                if (res.ok) {
+                    toast('✅ Payment confirmed! Appointment & JobCard marked as Completed.', 'success');
+                    if (typeof loadInvoices === 'function') loadInvoices();
+                    else location.reload();
+                } else {
+                    if (row) row.style.opacity = '1';
+                    alert('❌ Error: ' + (d.error || 'Failed to mark as paid'));
+                }
+            } catch(e) {
+                if (row) row.style.opacity = '1';
+                alert('❌ Network error: Check your connection');
+            }
+        }
+
+        // Use global window.toast instead of a local duplicate
+    </script>
+</body>
+</html>

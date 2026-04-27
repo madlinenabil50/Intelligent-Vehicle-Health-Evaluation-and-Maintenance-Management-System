@@ -1,0 +1,351 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Work Order Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+        <nav class="sidebar">
+        <a href="./technician-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">Technician</div>
+        <ul class="sidebar-menu">
+            <li><a href="./technician-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li class="active"><a href="./work-orders.html"><i class="bi bi-card-list"></i> Work Orders</a></li>
+            <li><a href="./inspections.html"><i class="bi bi-clipboard-check"></i> Inspections</a></li>
+            <li><a href="./parts-request.html"><i class="bi bi-box-seam"></i> Parts Request</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Work Order Details</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Work Orders / Details</span>
+                    <h1 class="dashboard-title">Work Order <span id="wo-id">#—</span></h1>
+                </div>
+                <div class="d-flex gap-2" id="wo-actions-container">
+                    <select id="statusSelect" class="form-select" style="width:160px; display:none;" onchange="updateStatus(this.value)">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                    <button class="btn btn-primary" id="markCompletedBtn" style="display:none;" onclick="updateStatus('Completed')">
+                        <i class="bi bi-check-all me-2"></i> Mark Completed
+                    </button>
+                    <button class="btn btn-success" id="completeOrderBtn" data-bs-toggle="modal"
+                        data-bs-target="#completeJobModal" style="display:none;"><i class="bi bi-check-circle me-2"></i> Complete</button>
+                    <a href="./parts-request.html" class="btn btn-outline-secondary"><i class="bi bi-box-seam me-2"></i>
+                        Request Parts</a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Info Card -->
+                <div class="col-lg-5">
+                    <div class="card border-0 rounded-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Job Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row g-2 mb-0 small">
+                                <dt class="col-5 text-muted">Vehicle</dt>
+                                <dd class="col-7 fw-semibold" id="wo-vehicle">—</dd>
+                                <dt class="col-5 text-muted">License Plate</dt>
+                                <dd class="col-7 fw-semibold" id="wo-license">—</dd>
+                                <dt class="col-5 text-muted">Service Type</dt>
+                                <dd class="col-7 fw-semibold" id="wo-service">—</dd>
+
+                                <dt class="col-5 text-muted">Status</dt>
+                                <dd class="col-7" id="wo-status">—</dd>
+                            </dl>
+                            <hr style="border-color:var(--border-color);">
+                            <h6 class="fw-bold mb-2 text-muted"
+                                style="font-size:.8rem;text-transform:uppercase;letter-spacing:.8px;">Client Complaint
+                            </h6>
+                            <p class="mb-0 small" id="wo-complaint" style="color:#e2e8f0;line-height:1.7;">—</p>
+                        </div>
+                    </div>
+
+                    <!-- Service Checklist -->
+                    <div class="card border-0 rounded-4 mt-4">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Service Checklist</h6>
+                        </div>
+                        <div class="card-body" id="checklist-container">
+                             <p class="text-muted small">Loading checklist from inspection...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes / Log -->
+                <div class="col-lg-7">
+                    <div class="card border-0 rounded-4 h-100">
+                        <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                            <h6 class="fw-bold mb-0">Technician Notes & Log</h6>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <div id="wo-notes" class="flex-grow-1 mb-3" style="min-height:200px;"></div>
+                            <form id="addNoteForm">
+                                <textarea class="form-control mb-2" rows="3"
+                                    placeholder="Add a note, finding, or update..."></textarea>
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i> Add
+                                    Note</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Complete Job & Invoice Modal -->
+    <div class="modal fade" id="completeJobModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Complete Work Order</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="completeJobForm">
+                        <p class="text-muted small mb-4">Please enter the final costs associated with this work order.
+                            This will close the job in the system.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label">Labor Cost ($)</label>
+                            <input type="number" class="form-control" id="laborCost" placeholder="0.00" min="0"
+                                step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Parts & Materials Cost ($)</label>
+                            <input type="number" class="form-control" id="partsCost" placeholder="0.00" min="0"
+                                step="0.01" required>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-outline-secondary"
+                                data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i> Complete
+                                Work Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/main.js?v=20260425_v11"></script>
+    <script>
+        // Inject session data from Django context
+        const userId = "{{ user_data.user_id }}";
+        const userRole = "{{ user_data.role }}";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const wId = urlParams.get('id');
+
+        async function fetchWO() {
+            if (!wId) return;
+            try {
+                const res = await fetch(`/api/work-orders?id=${wId}&_t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const wo = data.work_orders[0];
+                    if (wo) {
+                        document.getElementById('wo-id').textContent = '#' + wo.JobCard_ID;
+                        document.getElementById('wo-vehicle').textContent = `${wo.Make} ${wo.Model}`;
+                        document.getElementById('wo-license').textContent = wo.PlateNumber;
+                        document.getElementById('wo-service').textContent = wo.service_type || wo.ReportedIssues;
+                        
+                        // Parse notes from ReportedIssues (if it contains our tagged format)
+                        const notesContainer = document.getElementById('wo-notes');
+                        if (wo.ReportedIssues) {
+                             const lines = wo.ReportedIssues.split('\n').filter(l => l.trim() !== '');
+                             notesContainer.innerHTML = lines.map(line => {
+                                 if (line.startsWith('[')) {
+                                     return `<div class="alert alert-secondary py-2 mb-2 small" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text-color);">
+                                                ${line}
+                                             </div>`;
+                                 }
+                                 return `<p class="small mb-1">${line}</p>`;
+                             }).join('');
+                        } else {
+                             notesContainer.innerHTML = '<p class="text-muted small">No technical notes recorded yet.</p>';
+                        }
+
+                        // Render Checklist
+                        const checklistContainer = document.getElementById('checklist-container');
+                        if (wo.inspection && wo.inspection.checklist) {
+                            const cl = wo.inspection.checklist;
+                            let html = '';
+                            for (const [key, val] of Object.entries(cl)) {
+                                const checked = val === 'Pass' || val === true || val === 'Checked' ? 'checked' : '';
+                                html += `
+                                    <div class="form-check mb-2">
+                                        <input type="checkbox" class="form-check-input" ${checked} disabled>
+                                        <label class="form-check-label">${key.replace(/([A-Z])/g, ' $1').trim()}</label>
+                                    </div>
+                                `;
+                            }
+                            checklistContainer.innerHTML = html || '<p class="text-muted small">Inspection performed but no checklist data found.</p>';
+                        } else {
+                            checklistContainer.innerHTML = `
+                                <div class="text-center py-3">
+                                    <i class="bi bi-info-circle text-muted mb-2 d-block" style="font-size:1.5rem;"></i>
+                                    <p class="text-muted small mb-0">No inspection checklist found for this work order.</p>
+                                    <p class="text-muted" style="font-size:0.7rem;">Please perform a vehicle inspection first.</p>
+                                </div>
+                            `;
+                        }
+
+                        document.getElementById('wo-complaint').textContent = wo.ReportedIssues ? wo.ReportedIssues.split('\n')[0] : 'No complaint listed.';
+                        
+                        const statusEl = document.getElementById('wo-status');
+                        const stClass = { 
+                            'In Progress': 'in-progress', 
+                            'Completed': 'completed', 
+                            'Queued': 'pending', 
+                            'Pending': 'pending', 
+                            'Closed': 'completed', 
+                            'Waiting on Parts': 'waiting-parts' 
+                        };
+                        statusEl.innerHTML = `<span class="status-badge ${stClass[wo.Status] || 'pending'}">${wo.Status}</span>`;
+
+                        const statusSelect = document.getElementById('statusSelect');
+                        const completeBtn = document.getElementById('completeOrderBtn');
+                        const markCompletedBtn = document.getElementById('markCompletedBtn');
+
+                        // Check technician/manager permissions
+                        const isJobTech = wo.Technician_ID && (wo.Technician_ID == userId);
+                        const isManagement = ['admin', 'manager', 'service-manager'].includes(userRole);
+
+                        if (isJobTech || isManagement) {
+                            if (wo.Status !== 'Closed') {
+                                statusSelect.style.display = 'block';
+                                statusSelect.value = wo.Status;
+                                
+                                if (wo.Status !== 'Completed') {
+                                    markCompletedBtn.style.display = 'block';
+                                    completeBtn.style.display = 'none';
+                                } else {
+                                    markCompletedBtn.style.display = 'none';
+                                    completeBtn.style.display = 'block';
+                                }
+                            } else {
+                                statusSelect.style.display = 'none';
+                                markCompletedBtn.style.display = 'none';
+                                completeBtn.style.display = 'none';
+                            }
+                        } else {
+                            statusSelect.style.display = 'none';
+                            markCompletedBtn.style.display = 'none';
+                            completeBtn.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        window.updateStatus = async function(newStatus) {
+            try {
+                const res = await fetch('/api/update-wo-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobcard_id: wId, status: newStatus })
+                });
+                if (res.ok) {
+                    toast('Status updated successfully', 'success');
+                    fetchWO();
+                } else {
+                    const err = await res.json();
+                    toast(err.error || 'Update failed', 'error');
+                }
+            } catch (err) { toast('Network error', 'error'); }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchWO();
+            const noteForm = document.getElementById('addNoteForm');
+            if (noteForm) {
+                noteForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const txt = noteForm.querySelector('textarea')?.value?.trim();
+                    if (!txt) return;
+
+                    try {
+                        const res = await fetch('/api/update-wo-status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ jobcard_id: wId, note: txt })
+                        });
+                        if (res.ok) {
+                            toast('Note added successfully', 'success');
+                            noteForm.reset();
+                            fetchWO();
+                        } else {
+                            toast('Failed to add note', 'error');
+                        }
+                    } catch (err) { toast('Network error', 'error'); }
+                });
+            }
+
+            const completeForm = document.getElementById('completeJobForm');
+            if (completeForm) {
+                completeForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    if (!wId) {
+                        toast("No Work Order ID found in URL.", 'error');
+                        return;
+                    }
+
+                    const labor = document.getElementById('laborCost').value;
+                    const parts = document.getElementById('partsCost').value;
+
+                    try {
+                        const res = await fetch('/api/complete-wo', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                jobcard_id: wId,
+                                labor_cost: parseFloat(labor),
+                                parts_cost: parseFloat(parts)
+                            })
+                        });
+
+                        if (res.ok) {
+                            toast('Work order completed successfully!', 'success');
+                            setTimeout(() => { window.location.href = './work-orders.html'; }, 1000);
+                        } else {
+                            const err = await res.json();
+                            toast('Error: ' + (err.error || 'Failed to complete job'), 'error');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        toast('Network Error', 'error');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

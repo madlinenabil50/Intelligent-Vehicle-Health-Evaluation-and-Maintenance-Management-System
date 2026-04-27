@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Supplier Purchase Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../assets/css/tables.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./inventory-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        {% if user_data.role == 'admin' %}
+        <div class="sidebar-heading admin-only">Admin</div>
+        <ul class="sidebar-menu admin-only">
+            <li><a href="../admin/admin-dashboard.html"><i class="bi bi-arrow-left-circle"></i> Back to Admin</a></li>
+        </ul>
+        {% endif %}
+        <div class="sidebar-heading">Inventory</div>
+        <ul class="sidebar-menu">
+            <li><a href="./inventory-dashboard.html"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="./manage-stock.html"><i class="bi bi-box-seam"></i> Manage Stock</a></li>
+            <li><a href="./parts-approval.html"><i class="bi bi-check2-square"></i> Parts Requests</a></li>
+            <li class="active"><a href="./supplier-orders.html"><i class="bi bi-cart"></i> Supplier Orders</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Supplier Purchase Orders</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#"
+                        class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
+                        data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger logout-link" href="#"><i
+                                    class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header mb-4">
+                <div>
+                    <span class="dashboard-breadcrumbs">Inventory / Purchase Orders</span>
+                    <h1 class="dashboard-title">Order from Supplier</h1>
+                </div>
+            </div>
+
+            <!-- Order Form Card -->
+            <div class="card border-0 rounded-4 mb-4 shadow-sm" style="background: var(--card-bg);">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3"><i class="bi bi-cart-plus me-2 text-primary"></i>New Purchase Order</h5>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold text-uppercase">Supplier</label>
+                            <select class="form-select" id="poSupplierSelect" onchange="poSupplierChanged()">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small fw-bold text-uppercase">Car Model</label>
+                            <select class="form-select po-select-locked" id="poModelSelect" onchange="poModelChanged()">
+                                <option value="">Select Supplier first</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small fw-bold text-uppercase">Part</label>
+                            <select class="form-select po-select-locked" id="poPartSelect">
+                                <option value="">Select Model first</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <div style="flex:1">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Qty</label>
+                                <input type="number" class="form-control px-2" id="supplierOrderQty" min="1" value="1">
+                            </div>
+                            <button type="button" class="btn btn-primary" id="submitOrderBtn" style="height:38px;align-self:flex-end;" onclick="submitSupplierOrder()">Order</button>
+                        </div>
+                    </div>
+                    <div id="supplierFormError" class="alert alert-danger d-none mt-3 mb-0"></div>
+                </div>
+            </div>
+
+            <!-- Purchase Orders Table -->
+            <div class="card border-0 rounded-4">
+                <div class="card-header bg-transparent border-0 pt-4 pb-0">
+                    <h6 class="fw-bold mb-0">Purchase Orders History</h6>
+                </div>
+                <div class="card-body p-0 mt-3">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="text-uppercase small fw-bold" style="letter-spacing:0.5px;">
+                                <tr>
+                                    <th class="ps-4">PO #</th>
+                                    <th>Supplier</th>
+                                    <th>Part Name</th>
+                                    <th>Code</th>
+                                    <th>Qty</th>
+                                    <th>Total Price</th>
+                                    <th>Date</th>
+                                    <th class="pe-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="poTable">
+                                <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="poPagination"></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/pagination.js"></script>
+    <script src="../../assets/js/main.js"></script>
+    <script src="../../assets/js/topbar-helper.js"></script>
+    <style>
+        .po-select-locked {
+            pointer-events: none;
+            opacity: 0.45;
+        }
+    </style>
+    <script>
+        const userId = "{{ user_data.user_id }}";
+        const fullName = "{{ user_data.firstname }} {{ user_data.lastname }}".trim();
+
+        // Update avatar with real user initial from session
+
+        const stBadge = (s) => {
+            const map = { 'Pending': 'pending', 'Approved': 'completed', 'Rejected': 'danger', 'Delivered': 'success' };
+            const status = s || 'Pending';
+            return `<span class="status-badge ${map[status] || 'pending'}">${status}</span>`;
+        };
+
+        let currentPoPage = 1;
+        let allSupplierParts = [];
+
+        async function initPage() {
+            await loadSupplierParts();
+            await loadPurchaseOrders();
+        }
+
+        async function loadSupplierParts() {
+            try {
+                const res = await fetch('/api/supplier-parts');
+                const data = await res.json();
+                allSupplierParts = data.data || [];
+                
+                const suppliers = [...new Set(allSupplierParts.map(p => p.supplier_name))].sort();
+                const sel = document.getElementById('poSupplierSelect');
+                sel.innerHTML = '<option value="">-- Select Supplier --</option>' + 
+                    suppliers.map(s => `<option value="${s}">${s}</option>`).join('');
+                
+                document.getElementById('poModelSelect').innerHTML = '<option value="">Select Supplier first</option>';
+                document.getElementById('poModelSelect').classList.add('po-select-locked');
+                document.getElementById('poPartSelect').innerHTML = '<option value="">Select Model first</option>';
+                document.getElementById('poPartSelect').classList.add('po-select-locked');
+            } catch (e) {
+                console.error('Failed to load supplier parts:', e);
+                const sel = document.getElementById('poSupplierSelect');
+                if (sel) sel.innerHTML = '<option value="">Error loading</option>';
+            }
+        }
+
+        function poSupplierChanged() {
+            const supplier = document.getElementById('poSupplierSelect').value;
+            const modelSel = document.getElementById('poModelSelect');
+            const partSel = document.getElementById('poPartSelect');
+            
+            partSel.innerHTML = '<option value="">Select Model first</option>';
+            partSel.classList.add('po-select-locked');
+
+            if (!supplier) {
+                modelSel.innerHTML = '<option value="">Select Supplier first</option>';
+                modelSel.classList.add('po-select-locked');
+                return;
+            }
+
+            const models = [...new Set(allSupplierParts.filter(p => p.supplier_name === supplier).map(p => p.car_model))].sort();
+            modelSel.innerHTML = '<option value="">-- Select Car Model --</option>' + 
+                models.map(m => `<option value="${m}">${m || 'General'}</option>`).join('');
+            modelSel.classList.remove('po-select-locked');
+        }
+
+        function poModelChanged() {
+            const supplier = document.getElementById('poSupplierSelect').value;
+            const model = document.getElementById('poModelSelect').value;
+            const partSel = document.getElementById('poPartSelect');
+
+            if (!model) {
+                partSel.innerHTML = '<option value="">Select Model first</option>';
+                partSel.classList.add('po-select-locked');
+                return;
+            }
+
+            const parts = allSupplierParts.filter(p => p.supplier_name === supplier && p.car_model === model);
+            partSel.innerHTML = '<option value="">-- Select Part --</option>' + 
+                parts.map(p => `<option value="${p.part_id}">${p.name} (${p.code}) - $${p.price}</option>`).join('');
+            partSel.classList.remove('po-select-locked');
+        }
+
+        async function submitSupplierOrder() {
+            const partId = document.getElementById('poPartSelect').value;
+            const qty = document.getElementById('supplierOrderQty').value;
+            const err = document.getElementById('supplierFormError');
+            const btn = document.getElementById('submitOrderBtn');
+            
+            if (!partId || qty < 1) {
+                err.textContent = 'Please select a part and valid quantity';
+                err.classList.remove('d-none');
+                return;
+            }
+            
+            err.classList.add('d-none');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            
+            try {
+                const res = await fetch('/api/purchase-orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ part_id: partId, quantity: qty })
+                });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    toast('✅ Order submitted successfully!', 'success');
+                    // Reset the form
+                    document.getElementById('poSupplierSelect').value = '';
+                    poSupplierChanged();
+                    document.getElementById('supplierOrderQty').value = '1';
+                    // Refresh table immediately
+                    loadPurchaseOrders();
+                } else {
+                    err.textContent = result.error || 'Failed to submit order';
+                    err.classList.remove('d-none');
+                }
+            } catch (e) {
+                err.textContent = 'Network error: ' + e.message;
+                err.classList.remove('d-none');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Order';
+            }
+        }
+
+        async function loadPurchaseOrders(page = 1) {
+            currentPoPage = page;
+            const tbody = document.getElementById('poTable');
+            try {
+                const res = await fetch(`/api/purchase-orders?page=${page}&_t=${Date.now()}`);
+                const data = await res.json();
+                
+                if (data.data && data.data.length > 0) {
+                    tbody.innerHTML = data.data.map(po => {
+                        return `<tr>
+                            <td class="ps-4 fw-bold">PO-${po.order_id}</td>
+                            <td>${po.supplier_name}</td>
+                            <td>${po.part_name}</td>
+                            <td>${po.part_code}</td>
+                            <td>${po.quantity}</td>
+                            <td class="text-success fw-bold">$${po.total_price}</td>
+                            <td>${new Date(po.order_date).toLocaleDateString()}</td>
+                            <td class="pe-4">${stBadge(po.status)}</td>
+                        </tr>`;
+                    }).join('');
+                    
+                    if(document.getElementById('poPagination')) {
+                        renderPagination('poPagination', data, (newPage) => {
+                            loadPurchaseOrders(newPage);
+                        });
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No Purchase Orders found.</td></tr>';
+                    const pag = document.getElementById('poPagination');
+                    if(pag) pag.innerHTML = '';
+                }
+            } catch (e) {
+                console.error('Failed to load POs:', e);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Error loading purchase orders.</td></tr>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+
+</html>
