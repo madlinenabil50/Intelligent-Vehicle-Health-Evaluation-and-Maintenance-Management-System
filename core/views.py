@@ -494,19 +494,21 @@ def _sync_user_role(u):
     from .models import Client, Admin, Technician, Servicemanager, Financemanager, Topmanager, Stockkeeper, Dataanalyst
     import datetime
     role_model_map = {
-        'Client': Client, 'Admin': Admin, 'Technician': Technician,
-        'ServiceManager': Servicemanager, 'FinanceManager': Financemanager,
-        'TopManager': Topmanager, 'StockKeeper': Stockkeeper, 'DataAnalyst': Dataanalyst
+        'client': Client, 'admin': Admin, 'technician': Technician,
+        'service-manager': Servicemanager, 'finance-manager': Financemanager,
+        'top-manager': Topmanager, 'stock-keeper': Stockkeeper, 'data-analyst': Dataanalyst,
+        'servicemanager': Servicemanager, 'financemanager': Financemanager,
+        'topmanager': Topmanager, 'stockkeeper': Stockkeeper, 'dataanalyst': Dataanalyst
     }
-    role = u.role
+    role = (u.role or '').strip().lower()
     model_class = role_model_map.get(role)
     for r, m_class in role_model_map.items():
-        if r != role:
+        if m_class != model_class:
             m_class.objects.filter(user=u).delete()
     if model_class and not model_class.objects.filter(user=u).exists():
-        if role == 'Client':
+        if role == 'client':
             model_class.objects.create(user=u, registrationdate=datetime.date.today())
-        elif role == 'Technician':
+        elif role == 'technician':
             model_class.objects.create(user=u, hiredate=datetime.date.today(), currentstatus='Available')
         else:
             model_class.objects.create(user=u)
@@ -533,6 +535,13 @@ def me_view(request):
                 return _json_error('User not found in database', 404)
                 
             client = Client.objects.filter(user_id=user.user_id).first()
+            if not client and (user.role or '').strip().lower() == 'client':
+                import datetime
+                client = Client.objects.create(user=user, registrationdate=datetime.date.today())
+            elif client and not client.registrationdate:
+                import datetime
+                client.registrationdate = datetime.date.today()
+                client.save()
 
             # Read loyalty points from database (allows manual edits to stick)
             loyalty_count = user.loyalty_points or 0
