@@ -2657,6 +2657,31 @@ def inspection_list_create(request):
                 results=results,
                 diagnosticdata=json.dumps(diag_data)
             )
+
+            # Auto-complete if service type is "Check"
+            if jobcard_id:
+                jc = Jobcard.objects.select_related('appointment', 'vehicle').filter(jobcard_id=jobcard_id).first()
+                if jc and jc.appointment and jc.appointment.service_type and jc.appointment.service_type.lower() == 'check':
+                    jc.status = 'Completed'
+                    jc.save()
+                    if jc.appointment.status != 'Completed':
+                        jc.appointment.status = 'Completed'
+                        jc.appointment.save()
+                        _award_loyalty_point(jc.appointment.user_id)
+                        try:
+                            from .models import Users
+                            client = Users.objects.filter(user_id=jc.appointment.user_id).first()
+                            if client and client.email:
+                                vehicle_name = f"{jc.vehicle.year or ''} {jc.vehicle.make} {jc.vehicle.model}".strip()
+                                _send_service_completion_email(
+                                    client.email, 
+                                    f"{client.firstname} {client.lastname}",
+                                    vehicle_name,
+                                    jc.appointment_id
+                                )
+                        except Exception as e:
+                            print(f"Failed to trigger completion email (inspection): {e}")
+
             return _json_ok()
         except Exception as e:
             print("DB Error (Inspection POST):", e)

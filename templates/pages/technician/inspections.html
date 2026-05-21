@@ -947,6 +947,12 @@
             data.health_score = calculateHealthScore();
             data.health_category = finalCategoryDisplay.innerText;
 
+            const submitBtn = document.getElementById('transmitBtn');
+            if(submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Transmitting...';
+            }
+
             try {
                 const res = await fetch('/api/inspections', {
                     method: 'POST',
@@ -966,7 +972,12 @@
                     loadInspections();
                     setTimeout(loadInspections, 1000);
                 }
-            } catch (err) { console.error('Error submitting inspection:', err); }
+            } catch (err) { console.error('Error submitting inspection:', err); } finally {
+                if(submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'TRANSMIT REPORT';
+                }
+            }
         });
 
         loadInitialData();

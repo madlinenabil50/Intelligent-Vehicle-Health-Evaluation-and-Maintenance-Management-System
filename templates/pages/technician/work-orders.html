@@ -105,7 +105,7 @@
                         <td>${wo.Make} ${wo.Model}<br><small class="text-muted">${wo.PlateNumber}</small></td>
                         <td>${wo.service_type || '—'}</td>
                         <td><span class="status-badge ${wo.Status.toLowerCase().replace(' ', '-')}">${wo.Status}</span></td>
-                        <td><a href="./work-order-details.html?id=${wo.JobCard_ID}" class="btn btn-sm btn-outline-primary px-3">Open Details</a></td>
+                        <td>${(wo.service_type || '').toLowerCase() === 'check' ? '<span class="text-muted">—</span>' : `<a href="./work-order-details.html?id=${wo.JobCard_ID}" class="btn btn-sm btn-outline-primary px-3">Open Details</a>`}</td>
                     </tr>
                 `).join('');
                 renderPagination('pagination-container', data, (newPage) => loadWorkOrders(newPage));
