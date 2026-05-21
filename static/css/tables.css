@@ -20,7 +20,7 @@
 .table-card-title {
     font-weight: 700;
     font-size: 1rem;
-    color: #fff;
+    color: var(--text-color);
     margin: 0;
 }
 
@@ -76,7 +76,7 @@
     border-radius: 8px;
     border: 1px solid var(--border-color);
     background: var(--card-bg);
-    color: #fff;
+    color: var(--text-color);
     font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -97,4 +97,30 @@
 .pagination-btn.active {
     background: var(--accent-gradient);
     border-color: transparent;
+}
+
+/* ========== DARK MODE OVERRIDES ========== */
+[data-theme="dark"] .table-card {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .table-card-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .pagination-container {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .pagination-btn {
+    background: #1f2937;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .pagination-btn:hover:not(:disabled) {
+    background: var(--accent-gradient);
+    color: white;
 }

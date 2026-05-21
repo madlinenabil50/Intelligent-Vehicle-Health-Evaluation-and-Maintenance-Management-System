@@ -7,16 +7,12 @@
     <title>IVHEMMS — Payment Records</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../../assets/css/tables.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/tables.css">
     <style>
         .method-icon { font-size: 1.1rem; margin-right: 6px; }
-        .badge-vodafone { background: rgba(230,0,0,0.15); color:#ff4f4f; border:1px solid rgba(230,0,0,0.3); }
-        .badge-fawry { background: rgba(255,170,0,0.15); color:#ffaa00; border:1px solid rgba(255,170,0,0.3); }
-        .badge-instapay { background: rgba(93,156,236,0.15); color:#5d9cec; border:1px solid rgba(93,156,236,0.3); }
         .badge-creditcard { background: rgba(129,140,248,0.15); color:#818cf8; border:1px solid rgba(129,140,248,0.3); }
-        .badge-cash { background: rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); }
     </style>
 </head>
 
@@ -92,13 +88,6 @@
                         <i class="bi bi-cash-stack kpi-icon-overlay"></i>
                     </div>
                 </div>
-                <div class="col-12 col-md-4">
-                    <div class="kpi-pod">
-                        <div class="kpi-label">Digital Payments</div>
-                        <div class="kpi-value" id="kpiDigital">—</div>
-                        <i class="bi bi-phone kpi-icon-overlay"></i>
-                    </div>
-                </div>
             </div>
 
             <div class="card border-0 rounded-4">
@@ -127,24 +116,16 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/pagination.js"></script>
-    <script src="../../assets/js/main.js?v=4"></script>
+    <script src="../../../assets/js/pagination.js"></script>
+    <script src="../../../assets/js/main.js?v=4"></script>
     <script>
         let allPayments = [];
 
         const METHOD_ICON = {
-            'VodafoneCash': 'bi-phone-fill',
-            'Fawry':        'bi-qr-code-scan',
             'CreditCard':   'bi-credit-card-fill',
-            'InstaPay':     'bi-lightning-charge-fill',
-            'Cash':         'bi-cash-coin',
         };
         const METHOD_CLASS = {
-            'VodafoneCash': 'badge-vodafone',
-            'Fawry':        'badge-fawry',
             'CreditCard':   'badge-creditcard',
-            'InstaPay':     'badge-instapay',
-            'Cash':         'badge-cash',
         };
 
         // Update avatar and check admin role
@@ -199,7 +180,6 @@
         function renderKPIs(data) {
             document.getElementById('kpiTotal').textContent = data.total_payments_count || 0;
             document.getElementById('kpiCollected').textContent = `EGP ${(data.total_collected || 0).toLocaleString(undefined, {minimumFractionDigits:2})}`;
-            document.getElementById('kpiDigital').textContent = data.digital_count || 0;
         }
 
         function renderTable(data) {

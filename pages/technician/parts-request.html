@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="light">
 
 <head>
@@ -134,7 +134,7 @@
                 const res = await fetch('/api/inventory');
                 const items = await res.json();
                 partsItemSelect.innerHTML = '<option value="">Select a part...</option>' +
-                    items.map(i => `<option value="${i.Item_ID}">${i.Name} (Stock: ${i.StockQty})</option>`).join('');
+                    items.map(i => `<option value="${i.Item_ID}">${i.Name}</option>`).join('');
             } catch (err) {
                 console.error('Error loading inventory:', err);
                 partsItemSelect.innerHTML = '<option value="">Failed to load</option>';

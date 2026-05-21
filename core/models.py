@@ -1,4 +1,24 @@
 from django.db import models
+from enum import Enum
+
+class AppointmentStatus(models.TextChoices):
+    SCHEDULED = 'Scheduled', 'Scheduled'
+    CONFIRMED = 'Confirmed', 'Confirmed'
+    IN_PROGRESS = 'In Progress', 'In Progress'
+    COMPLETED = 'Completed', 'Completed'
+    CANCELLED = 'Cancelled', 'Cancelled'
+
+class InvoiceStatus(models.TextChoices):
+    PAID = 'Paid', 'Paid'
+    UNPAID = 'Unpaid', 'Unpaid'
+    OVERDUE = 'Overdue', 'Overdue'
+
+class JobCardStatus(models.TextChoices):
+    SCHEDULED = 'Scheduled', 'Scheduled'
+    CONFIRMED = 'Confirmed', 'Confirmed'
+    IN_PROGRESS = 'In Progress', 'In Progress'
+    COMPLETED = 'Completed', 'Completed'
+    CANCELLED = 'Cancelled', 'Cancelled'
 
 
 class Users(models.Model):
@@ -13,6 +33,7 @@ class Users(models.Model):
     profilepicture = models.CharField(db_column='ProfilePicture', max_length=255, blank=True, null=True)
     resettoken = models.CharField(db_column='ResetToken', max_length=255, blank=True, null=True)
     resettokenexpiry = models.DateTimeField(db_column='ResetTokenExpiry', blank=True, null=True)
+    loyalty_points = models.IntegerField(db_column='loyalty_points', default=0)
 
     class Meta:
         managed = False
@@ -45,10 +66,9 @@ class Appointment(models.Model):
     appointment_id = models.AutoField(db_column='Appointment_ID', primary_key=True)
     user = models.ForeignKey(Users, models.DO_NOTHING, db_column='User_ID', blank=True, null=True)
     vehicle = models.ForeignKey(Vehicle, models.DO_NOTHING, db_column='Vehicle_ID', blank=True, null=True)
-    starttime = models.DateTimeField(db_column='StartTime', blank=True, null=True)
+    date_time = models.DateTimeField(db_column='date_time', blank=True, null=True)
     status = models.CharField(db_column='Status', max_length=50)
     service_type = models.CharField(max_length=100, blank=True, null=True)
-    notes = models.TextField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -95,7 +115,6 @@ class Jobcard(models.Model):
     invoice = models.ForeignKey(Invoice, models.DO_NOTHING, db_column='Invoice_ID', blank=True, null=True, related_name='jobcard_list')
     createdat = models.DateTimeField(db_column='CreatedAt', blank=True, null=True)
     updatedat = models.DateTimeField(db_column='UpdatedAt', blank=True, null=True)
-    reportedissues = models.TextField(db_column='ReportedIssues', blank=True, null=True)
     status = models.CharField(db_column='Status', max_length=50, blank=True, null=True)
     totallaborcost = models.DecimalField(db_column='TotalLaborCost', max_digits=10, decimal_places=2, blank=True, null=True)
     totalpartscost = models.DecimalField(db_column='TotalPartsCost', max_digits=10, decimal_places=2, blank=True, null=True)
@@ -189,7 +208,6 @@ class Admin(models.Model):
 class Client(models.Model):
     user = models.OneToOneField(Users, models.DO_NOTHING, db_column='User_ID', primary_key=True)
     registrationdate = models.DateField(db_column='RegistrationDate', blank=True, null=True)
-    customercategory = models.CharField(db_column='CustomerCategory', max_length=50, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -200,8 +218,6 @@ class Technician(models.Model):
     user = models.OneToOneField(Users, models.DO_NOTHING, db_column='User_ID', primary_key=True)
     currentstatus = models.CharField(db_column='CurrentStatus', max_length=50, blank=True, null=True)
     hiredate = models.DateField(db_column='HireDate', blank=True, null=True)
-    specialization = models.CharField(db_column='Specialization', max_length=100, blank=True, null=True)
-    yearsofexperience = models.IntegerField(db_column='YearsOfExperience', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -210,8 +226,6 @@ class Technician(models.Model):
 
 class Servicemanager(models.Model):
     user = models.OneToOneField(Users, models.DO_NOTHING, db_column='User_ID', primary_key=True)
-    department = models.CharField(db_column='Department', max_length=100, blank=True, null=True)
-    shift = models.CharField(db_column='Shift', max_length=50, blank=True, null=True)
 
     class Meta:
         managed = False

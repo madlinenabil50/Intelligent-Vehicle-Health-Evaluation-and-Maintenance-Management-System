@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,8 @@
     <title>IVHEMMS — OBD Vehicle Monitor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -38,11 +38,10 @@
             <div class="d-flex align-items-center gap-2 ms-auto">
                 <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
                     style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
-                <select id="obdVehicleSelect" class="form-select form-select-sm"
-                    style="width:200px;border-color:var(--border-color);">
-                    <option value="bronco">2021 Ford Bronco</option>
-                    <option value="civic">2018 Honda Civic</option>
-                </select>
+                    <select id="obdVehicleSelect" class="form-select form-select-sm"
+                        style="width:200px;border-color:var(--border-color);">
+                        <option value="">Select BMW Vehicle</option>
+                    </select>
             </div>
         </header>
         <div class="container-fluid p-4 fade-in">
@@ -186,7 +185,7 @@
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js"></script>
+    <script src="../../../assets/js/main.js"></script>
     <script>
         const { textColor, gridColor } = getChartTheme();
         // Simulate live RPM data

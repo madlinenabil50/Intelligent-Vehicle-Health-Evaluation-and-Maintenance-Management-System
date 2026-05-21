@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — Book Check</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./client-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">My Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./client-dashboard.html"><i class="bi bi-house"></i> Dashboard</a></li>
+            <li><a href="./vehicle-list.html"><i class="bi bi-car-front"></i> My Vehicles</a></li>
+        </ul>
+        <div class="sidebar-heading">Services</div>
+        <ul class="sidebar-menu">
+            <li><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./book-check.html"><i class="bi bi-search"></i> Book Check</a></li>
+            <li><a href="./check-reports.html"><i class="bi bi-file-earmark-medical"></i> My Check Reports</a></li>
+            <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
+            <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
+            <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./profile.html"><i class="bi bi-person-circle"></i> My Profile</a></li>
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i
+                        class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">Book a Vehicle Check</h5>
+            </div>
+            <div class="ms-auto"><button id="themeSwitch" class="btn btn-outline-secondary rounded-circle"
+                    style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button></div>
+        </header>
+        <div class="container-fluid p-4 fade-in" style="max-width:760px;">
+            <div class="dashboard-header">
+                <div>
+                    <span class="dashboard-breadcrumbs">Client / Services</span>
+                    <h1 class="dashboard-title">Book a Vehicle Check</h1>
+                </div>
+            </div>
+
+            <!-- Wizard Steps -->
+            <div class="wizard-steps mb-4">
+                <div class="wizard-step active">
+                    <div class="step-num">1</div> Vehicle
+                </div>
+                <div class="wizard-connector"></div>
+                <div class="wizard-step">
+                    <div class="step-num">2</div> Date & Time
+                </div>
+                <div class="wizard-connector"></div>
+                <div class="wizard-step">
+                    <div class="step-num">3</div> Confirm & Pay
+                </div>
+            </div>
+
+            <div class="card border-0 rounded-4 p-4">
+                <form id="appointmentForm">
+                    <div class="alert alert-info mb-4">
+                        <strong><i class="bi bi-info-circle me-2"></i> Fixed Price: 3,000 EGP</strong>
+                        <br>Booking a check will issue a 3,000 EGP invoice. You must pay this invoice before the technician can start the inspection.
+                    </div>
+
+                    <h6 class="fw-bold mb-3" style="color:#818cf8;"><i class="bi bi-car-front me-2"></i>Select Vehicle
+                    </h6>
+                    <div class="mb-3">
+                        <select class="form-select" id="apptVehicle" name="vehicle" required>
+                            <option value="">Loading vehicles...</option>
+                        </select>
+                    </div>
+
+                    <hr style="border-color:var(--border-color);">
+                    <h6 class="fw-bold mb-3" style="color:#818cf8;"><i class="bi bi-calendar me-2"></i>Date & Time</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Preferred Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-calendar-date text-primary"></i></span>
+                                <input type="date" class="form-control border-start-0" id="apptDate" name="date" required min="">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Preferred Time</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-clock text-primary"></i></span>
+                                <select class="form-select border-start-0" id="apptTime" name="time">
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-search me-2"></i>
+                            Request Check & Get Invoice</button>
+                        <a href="./client-dashboard.html" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/main.js"></script>
+    <script>
+        const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
+
+        function validateTimes() {
+            const dateInput = document.getElementById('apptDate');
+            const timeSelect = document.getElementById('apptTime');
+            const now = new Date();
+            
+            // Get local date string YYYY-MM-DD
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const localToday = `${year}-${month}-${day}`;
+            
+            const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
+
+            const isToday = dateInput.value === localToday;
+            const selectedTime = timeSelect.value;
+            
+            timeSelect.innerHTML = '';
+            
+            let firstEnabledFound = false;
+
+            TIME_SLOTS.forEach(slot => {
+                const [h, m] = slot.split(':').map(Number);
+                const opt = document.createElement('option');
+                opt.value = slot;
+                
+                // Format display text (e.g., 10:00 AM)
+                const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+                const ampm = h >= 12 ? "PM" : "AM";
+                opt.textContent = `${displayHour}:00 ${ampm}`;
+                
+                if (isToday) {
+                    // Disable if hour is in the past, or if it's the current hour and minutes have passed
+                    if (h < currentHour || (h === currentHour && currentMin > 0)) {
+                        opt.disabled = true;
+                    }
+                }
+                
+                if (!opt.disabled && !firstEnabledFound) {
+                    opt.selected = true;
+                    firstEnabledFound = true;
+                }
+                
+                timeSelect.appendChild(opt);
+            });
+
+            // If the previously selected time is still valid, keep it
+            if (selectedTime && [...timeSelect.options].some(o => o.value === selectedTime && !o.disabled)) {
+                timeSelect.value = selectedTime;
+            }
+        }
+
+        // Initialize date constraints and listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const localToday = `${year}-${month}-${day}`;
+            
+            const dateInput = document.getElementById('apptDate');
+            dateInput.min = localToday;
+            if (!dateInput.value) dateInput.value = localToday;
+
+            dateInput.addEventListener('change', validateTimes);
+            validateTimes();
+            
+            // Re-validate every minute to keep current day times fresh
+            setInterval(validateTimes, 60000);
+        });
+
+        // Fetch user vehicles on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/vehicles');
+                if (res.ok) {
+                    const vehicles = await res.json();
+                    const select = document.getElementById('apptVehicle');
+                    select.innerHTML = '<option value="">Select vehicle...</option>';
+                    vehicles.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.Vehicle_ID;
+                        opt.textContent = `${v.Year || ''} ${v.Make} ${v.Model} (${v.PlateNumber})`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching vehicles:", err);
+            }
+        });
+
+        // Handle Form Submission
+        document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                vehicle_id: document.getElementById('apptVehicle').value,
+                date: document.getElementById('apptDate').value,
+                time: document.getElementById('apptTime').value
+            };
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+
+            try {
+                const res = await fetch('/api/book-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    await alert('Check requested! You will be redirected to the payments page.');
+                    window.location.href = './payments.html';
+                } else {
+                    const data = await res.json();
+                    await alert(data.error || 'Failed to request check.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-search me-2"></i> Request Check & Get Invoice';
+                }
+            } catch (err) {
+                console.error("Booking error:", err);
+                await alert('Connection error. Please try again.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-search me-2"></i> Request Check & Get Invoice';
+            }
+        });
+    </script>
+</body>
+
+</html>
+

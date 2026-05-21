@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay Vehicle Check — IVHEMMS</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #0f0f1a;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    padding: 24px 16px;
+  }
+  .pay-card {
+    background: #1e1b4b;
+    border: 1px solid rgba(129,140,248,0.2);
+    border-radius: 24px;
+    width: 100%; max-width: 480px;
+    overflow: hidden;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+  }
+  .pay-header {
+    background: linear-gradient(135deg, #312e81, #4338ca, #7c3aed);
+    padding: 36px 36px 28px;
+    text-align: center;
+  }
+  .pay-header .logo-wrapper {
+    background: rgba(255,255,255,0.1);
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+  }
+  .pay-header .logo { font-size: 28px; font-weight: 900; color: #fff; }
+  .pay-header .sub  { color: #a5b4fc; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+  .pay-body { padding: 28px 32px 32px; }
+  .inv-badge {
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(129,140,248,0.25);
+    border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+  }
+  .inv-badge .lbl { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .inv-badge .val { color: #f1f5f9; font-size: 15px; font-weight: 600; margin-top: 2px; }
+  .inv-badge .price { font-size: 32px; font-weight: 900; color: #fff; margin-top: 8px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 14px 16px;
+    background: rgba(15,23,42,0.6); border: 1px solid rgba(129,140,248,0.2);
+    border-radius: 10px; color: #f1f5f9; font-size: 15px; outline: none;
+    transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: #818cf8; }
+  .form-group input::placeholder { color: #475569; }
+  .form-group select option { background: #1e1b4b; color: #f1f5f9; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pay-btn {
+    width: 100%; padding: 18px; margin-top: 8px;
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    color: #fff; font-size: 17px; font-weight: 800; letter-spacing: 0.5px;
+    border: none; border-radius: 50px; cursor: pointer;
+    box-shadow: 0 8px 30px rgba(99,102,241,0.4);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(99,102,241,0.5); }
+  .pay-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .secure-note { text-align: center; color: #475569; font-size: 12px; margin-top: 14px; }
+  .error-box {
+    background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 12px; padding: 20px 24px; text-align: center; color: #fca5a5;
+  }
+  .success-box {
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 24px; text-align: center; color: #86efac;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="pay-card">
+  <!-- Header -->
+  <div class="pay-header">
+    <div class="logo-wrapper">🚗</div>
+    <div class="logo">IVHEMMS</div>
+    <div class="sub">Secure Vehicle Check Payment</div>
+  </div>
+
+  <!-- Body -->
+  <div class="pay-body">
+
+    {% if error %}
+    <div class="error-box">
+      <i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+      <strong>{{ error }}</strong>
+      <br><br>
+      <a href="/" style="color:#818cf8;text-decoration:none;">Go back to home</a>
+    </div>
+
+    {% else %}
+    <!-- Invoice Info -->
+    <div class="inv-badge">
+      <div class="lbl">Vehicle Check Inspection</div>
+      <div class="val" style="font-family:monospace;color:#818cf8;font-size:18px;">INV-{{ invoice.invoice_id|stringformat:"06d" }}</div>
+      <div style="color:#64748b;font-size:13px;margin-top:4px;">Due: {{ invoice.duedate }}</div>
+      <div class="price">EGP {{ invoice.total|floatformat:"0" }}</div>
+    </div>
+
+    <!-- Success Box -->
+    <div class="success-box" id="successBox">
+      <i class="bi bi-check-circle-fill" style="font-size:3rem;display:block;margin-bottom:12px;"></i>
+      <strong style="font-size:18px;display:block;margin-bottom:8px;">Payment Successful!</strong>
+      <p style="color:#86efac;font-size:14px;">Your vehicle check is now scheduled. You can check the status in your dashboard.</p>
+    </div>
+
+    <!-- Payment Form -->
+    <div id="payForm">
+      <div class="form-group">
+        <label>Payment Method</label>
+        <select id="methodSelect">
+          <option value="CreditCard">Credit / Debit Card</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Card Number</label>
+        <input type="text" id="cardNum" placeholder="0000 0000 0000 0000" maxlength="19">
+      </div>
+      <div class="row-2">
+        <div class="form-group">
+          <label>Expiry</label>
+          <input type="text" id="expiry" placeholder="MM/YY" maxlength="5">
+        </div>
+        <div class="form-group">
+          <label>CVV</label>
+          <input type="password" id="cvv" placeholder="***" maxlength="3">
+        </div>
+      </div>
+
+      <button class="pay-btn" id="payBtn" onclick="processPayment()">
+        PAY NOW — EGP {{ invoice.total|floatformat:"0" }}
+      </button>
+      <p class="secure-note"><i class="bi bi-lock-fill me-1" style="color:#22c55e;"></i> 256-bit SSL Encrypted · Secured by Credit Card</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+const TOKEN = "{{ token }}";
+
+document.getElementById('cardNum') && document.getElementById('cardNum').addEventListener('input', function(e) {
+  let v = e.target.value.replace(/\s+/g,'').replace(/[^0-9]/gi,'');
+  let f = '';
+  for (let i = 0; i < v.length; i++) { if (i > 0 && i % 4 === 0) f += ' '; f += v[i]; }
+  e.target.value = f;
+});
+
+document.getElementById('expiry') && document.getElementById('expiry').addEventListener('input', function(e) {
+  let v = e.target.value.replace(/\//g,'').replace(/[^0-9]/gi,'');
+  if (v.length > 2) e.target.value = v.slice(0,2) + '/' + v.slice(2,4);
+  else e.target.value = v;
+});
+
+async function processPayment() {
+  const card = document.getElementById('cardNum').value.trim();
+  const exp  = document.getElementById('expiry').value.trim();
+  const cvv  = document.getElementById('cvv').value.trim();
+  const method = document.getElementById('methodSelect').value;
+
+  if (card.length < 13 || !exp || cvv.length < 3) {
+    alert('Please enter valid card details.');
+    return;
+  }
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+
+  try {
+    const res = await fetch(`/pay-check/${TOKEN}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method })
+    });
+    if (res.ok) {
+      document.getElementById('payForm').style.display = 'none';
+      document.getElementById('successBox').style.display = 'block';
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Payment failed.');
+      btn.disabled = false;
+      btn.innerHTML = 'PAY NOW';
+    }
+  } catch(e) {
+    alert('Connection error.');
+    btn.disabled = false;
+    btn.innerHTML = 'PAY NOW';
+  }
+}
+</script>
+
+</body>
+</html>

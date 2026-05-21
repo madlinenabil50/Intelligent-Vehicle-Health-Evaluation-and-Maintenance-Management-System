@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IVHEMMS — My Vehicles</title>
+    <title>IVHEMMS - My Vehicles</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
 </head>
 
 <body class="vms-app">
@@ -23,6 +22,8 @@
         <div class="sidebar-heading">Services</div>
         <ul class="sidebar-menu">
             <li><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./book-check.html"><i class="bi bi-search"></i> Book Check</a></li>
+            <li><a href="./check-reports.html"><i class="bi bi-file-earmark-medical"></i> My Check Reports</a></li>
             <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
             <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
             <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
@@ -72,12 +73,72 @@
             </div>
         </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js?v=20260425_v11"></script>
-    <script src="../../assets/js/topbar-helper.js"></script>
-    <script>
-        // Update avatar with real user initial from session
 
+    <!-- Tracking Modal (5-Step) -->
+    <div class="modal fade" id="trackModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg" style="background: var(--card-bg);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="trackVehicleName">Track Maintenance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="vehicle-icon-box mx-auto mb-2" style="width:70px; height:70px; font-size: 2rem;">🚗</div>
+                        <h4 class="fw-bold mb-1" id="trackStatusLabel">Loading...</h4>
+                        <p class="text-muted small">Real-time Service Tracking</p>
+                    </div>
+
+                    <!-- Progress Stepper (5 Steps) -->
+                    <div class="tracking-stepper mb-5">
+                        <div class="step-item" id="step1">
+                            <div class="step-circle">1</div>
+                            <div class="step-text">Booking</div>
+                        </div>
+                        <div class="step-item" id="step2">
+                            <div class="step-circle">2</div>
+                            <div class="step-text">Confirmed</div>
+                        </div>
+                        <div class="step-item" id="step3">
+                            <div class="step-circle">3</div>
+                            <div class="step-text">Assigned</div>
+                        </div>
+                        <div class="step-item" id="step4">
+                            <div class="step-circle">4</div>
+                            <div class="step-text">Service</div>
+                        </div>
+                        <div class="step-item" id="step5">
+                            <div class="step-circle">5</div>
+                            <div class="step-text">Complete</div>
+                        </div>
+                        <div class="stepper-line">
+                            <div class="stepper-progress" id="trackProgress" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="info-card p-3 rounded-3 mb-3" style="background:rgba(67, 97, 238, 0.05); border: 1px solid rgba(67, 97, 238, 0.1);">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Assigned Technician</span>
+                            <span class="fw-bold small" id="trackTech">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted small">Last Update</span>
+                            <span class="fw-bold small" id="trackUpdate">--</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-center text-muted small mb-0">
+                        <i class="bi bi-info-circle me-1"></i> You will receive a notification when your car is ready for pickup.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/main.js?v=20260425_v11"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
+    <script>
         async function loadVehicles() {
             const container = document.getElementById('vehicleCards');
             try {
@@ -104,7 +165,9 @@
                                     <div class="vehicle-icon-box">
                                         <i class="bi bi-car-front fs-2"></i>
                                     </div>
-                                    <span class="status-badge completed">Healthy</span>
+                                    <span class="status-badge ${v.is_in_service ? 'pending' : 'completed'}">
+                                        ${v.is_in_service ? 'In Service' : 'Healthy'}
+                                    </span>
                                 </div>
                                 <h5 class="fw-bold mb-1">${v.Year || ''} ${v.Make} ${v.Model}</h5>
                                 <p class="text-muted small mb-3">Plate: <span class="fw-bold">${v.PlateNumber}</span></p>
@@ -115,15 +178,21 @@
                                         <span class="fw-semibold">${v.VIN || 'N/A'}</span>
                                     </div>
                                     <div class="d-flex justify-content-between small">
-                                        <span class="text-muted">Last Service</span>
-                                        <span class="fw-semibold">Mar 12, 2026</span>
+                                        <span class="text-muted">Status</span>
+                                        <span class="fw-semibold text-primary">${v.is_in_service ? (v.current_status || 'Active') : 'Idle'}</span>
                                     </div>
                                 </div>
                                 
                                 <div class="d-grid gap-2">
-                                    <a href="./booking.html?vehicle_id=${v.Vehicle_ID}" class="btn btn-primary btn-sm rounded-pill">
-                                        <i class="bi bi-calendar-plus me-1"></i> Book Service
-                                    </a>
+                                    ${v.is_in_service ? `
+                                        <button onclick="trackCar(${v.Vehicle_ID})" class="btn btn-success btn-sm rounded-pill shadow-sm">
+                                            <i class="bi bi-geo-alt-fill me-1"></i> Track My Car
+                                        </button>
+                                    ` : `
+                                        <a href="./booking.html?vehicle_id=${v.Vehicle_ID}" class="btn btn-primary btn-sm rounded-pill">
+                                            <i class="bi bi-calendar-plus me-1"></i> Book Service
+                                        </a>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -132,6 +201,38 @@
 
             } catch (err) {
                 container.innerHTML = `<div class="col-12 text-center text-danger p-5">Error loading vehicles. Please try again.</div>`;
+            }
+        }
+
+        async function trackCar(vehicleId) {
+            const modal = new bootstrap.Modal(document.getElementById('trackModal'));
+            modal.show();
+
+            // Reset UI
+            document.getElementById('trackStatusLabel').innerText = 'Loading...';
+            document.getElementById('trackProgress').style.width = '0%';
+            document.querySelectorAll('.step-item').forEach(s => s.classList.remove('active', 'completed'));
+
+            try {
+                const res = await fetch(`/api/vehicle-track/${vehicleId}`);
+                if (!res.ok) throw new Error('Not found');
+                const data = await res.json();
+
+                document.getElementById('trackVehicleName').innerText = data.vehicle_name;
+                document.getElementById('trackStatusLabel').innerText = data.label;
+                document.getElementById('trackTech').innerText = data.technician;
+                document.getElementById('trackUpdate').innerText = data.last_update;
+                document.getElementById('trackProgress').style.width = `${data.progress}%`;
+
+                // Update steps (1-5)
+                for (let i = 1; i <= 5; i++) {
+                    const step = document.getElementById(`step${i}`);
+                    if (i < data.step) step.classList.add('completed');
+                    if (i === data.step) step.classList.add('active');
+                }
+
+            } catch (e) {
+                document.getElementById('trackStatusLabel').innerText = 'No active tracking';
             }
         }
 
@@ -157,10 +258,43 @@
             background: rgba(67, 97, 238, 0.1);
             color: #4361ee;
             border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
         }
+
+        /* Tracking Stepper Styles */
+        .tracking-stepper {
+            display: flex; justify-content: space-between;
+            position: relative; padding-top: 10px;
+        }
+        .step-item {
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 2; width: 60px;
+        }
+        .step-circle {
+            width: 32px; height: 32px; background: #e2e8f0;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; color: #64748b;
+            margin-bottom: 8px; transition: all 0.3s;
+        }
+        .step-text { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; }
+        
+        .stepper-line {
+            position: absolute; top: 25px; left: 30px; right: 30px;
+            height: 4px; background: #e2e8f0; z-index: 1; border-radius: 2px;
+        }
+        .stepper-progress {
+            height: 100%; background: #22c55e;
+            width: 0%; transition: width 0.8s; border-radius: 2px;
+        }
+
+        .step-item.active .step-circle {
+            background: #4361ee; color: #fff; transform: scale(1.2);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+        }
+        .step-item.active .step-text { color: #4361ee; }
+
+        .step-item.completed .step-circle { background: #22c55e; color: #fff; }
+        .step-item.completed .step-text { color: #22c55e; }
     </style>
 </body>
 

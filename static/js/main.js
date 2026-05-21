@@ -68,8 +68,8 @@
                 { id: 'WO-4588', vehicleId: 'V002', vehicle: '2018 Honda Civic', license: 'ABC-9876', service: 'Oil Change', status: 'Completed', priority: 'Low', techEmail: 'tech@ivhemms.com', complaint: 'Routine oil change.', notes: [{ at: 'Mar 1, 02:00 PM', text: 'Completed. Used Mobil 1 5W-30.' }], checklist: [] },
             ],
             appointments: [
-                { id: 'APT-001', clientEmail: 'client@ivhemms.com', vehicleId: 'V001', service: 'Oil Change', date: '2026-03-15', time: '10:00', notes: 'Need synthetic oil.', status: 'Confirmed' },
-                { id: 'APT-002', clientEmail: 'client@ivhemms.com', vehicleId: 'V002', service: 'Brake Inspection', date: '2026-03-22', time: '14:00', notes: '', status: 'Pending' },
+                { id: 'APT-001', clientEmail: 'client@ivhemms.com', vehicleId: 'V001', service: 'Oil Change', date: '2026-03-15', time: '10:00', status: 'Confirmed' },
+                { id: 'APT-002', clientEmail: 'client@ivhemms.com', vehicleId: 'V002', service: 'Brake Inspection', date: '2026-03-22', time: '14:00', status: 'Pending' },
             ],
             inventory: [
                 { id: 'OIL-5W30', name: 'Synthetic Oil 5W-30', category: 'Fluids', qty: 45, unit: 'L', price: 8.50, minStock: 20 },
@@ -661,7 +661,7 @@
                   <tr>
                     <td><span class="fw-bold">#${wo.JobCard_ID}</span></td>
                     <td>${wo.Make} ${wo.Model}<br><small class="text-muted">${wo.PlateNumber}</small></td>
-                    <td>${wo.service_type || wo.ReportedIssues || '-'}</td>
+                    <td>${wo.service_type || '-'}</td>
                     <td>${statusMarkup}</td>
                     <td>${actionsMarkup}</td>
                   </tr>
@@ -805,7 +805,7 @@
             }
 
             tbody.innerHTML = apps.map(a => {
-                const dateObj = new Date(a.StartTime);
+                const dateObj = new Date(a.date_time);
                 const dateStr = dateObj.toLocaleDateString() + ' · ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 let statusCls = 'pending';

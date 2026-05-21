@@ -28,7 +28,7 @@ from .models import (
 
 # ---------- Gemini AI Config ----------
 # Using requests for maximum reliability across environments
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 
 # ========================================================================
@@ -63,13 +63,22 @@ def _get_session_user(request):
         if 'role' in user_data:
             user_data['role'] = user_data.get('role', '').lower()
         
-        if 'name' not in user_data:
+        # Verify user still exists in DB if we have a user_id
+        user_id = user_data.get('user_id')
+        if user_id:
             try:
-                u = Users.objects.get(user_id=user_data['user_id'])
-                user_data['name'] = f"{u.firstname} {u.lastname}"
+                u = Users.objects.get(user_id=user_id)
+                # Ensure name is fresh and handle None values
+                fname = u.firstname or ''
+                lname = u.lastname or ''
+                user_data['name'] = f"{fname} {lname}".strip() or "User"
+                user_data['profile_picture'] = u.profilepicture
                 request.session['user'] = user_data
             except Users.DoesNotExist:
-                pass
+                # User deleted from DB; invalidate session
+                request.session.flush()
+                return None
+            
     return user_data
 
 
@@ -78,6 +87,41 @@ def _json_error(msg, status=400):
     patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True, private=True)
     return response
 
+
+def _award_loyalty_point(user_id):
+    """
+    DEEP SYNC: Awards points based on completed services count vs lifetime earned.
+    Supports manual DB edits by syncing whenever called.
+    """
+    try:
+        from .models import Users, Appointment
+        user = Users.objects.filter(user_id=user_id).first()
+        if not user:
+            return
+
+        # 1. Count actual completed appointments in DB
+        actual_completed = Appointment.objects.filter(user_id=user_id, status='Completed').count()
+        
+        # 2. Track 'Lifetime Earned' in resettoken field (hidden tracking)
+        try:
+            lifetime_earned = int(user.resettoken) if (user.resettoken and user.resettoken.isdigit()) else 0
+        except:
+            lifetime_earned = 0
+
+        # 3. If DB shows more completed services than we've rewarded so far
+        if actual_completed > lifetime_earned:
+            diff = actual_completed - lifetime_earned
+            user.loyalty_points = (user.loyalty_points or 0) + diff
+            user.resettoken = str(actual_completed) # Update lifetime tracker
+            user.save()
+            print(f"Deep Sync: Awarded {diff} points to User {user_id}. New Balance: {user.loyalty_points}")
+        elif actual_completed < lifetime_earned:
+            # This handles case where services might have been deleted or status reversed
+            user.resettoken = str(actual_completed)
+            user.save()
+
+    except Exception as e:
+        print(f"Error in Loyalty Deep Sync: {e}")
 
 def _json_ok(extra=None):
     data = {'success': True}
@@ -132,60 +176,79 @@ ROLE_TO_DASHBOARD = {
 
 
 def _send_reset_email(target_email, reset_link):
-    """Send password-reset email via SMTP."""
+    """Send password-reset email via SMTP - Premium Dark Design."""
     try:
         system = settings.SYSTEM_NAME
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{system} <{settings.SMTP_USER}>"
         msg['To'] = target_email
-        msg['Subject'] = f" Password Reset Request - {system}"
+        msg['Subject'] = f"Password Reset Request - {system}"
 
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                .email-container {{
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6; color: #333; max-width: 600px;
-                    margin: 0 auto; padding: 20px;
-                    border: 1px solid #e1e1e1; border-radius: 10px;
-                    background-color: #f9f9f9;
-                }}
-                .header {{ text-align: center; padding-bottom: 20px; border-bottom: 2px solid #6366f1; }}
-                .header h1 {{ color: #6366f1; margin: 0; font-size: 24px; }}
-                .content {{ padding: 30px 20px; background-color: #ffffff; border-radius: 0 0 10px 10px; }}
-                .button-container {{ text-align: center; margin: 30px 0; }}
-                .button {{
-                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-                    color: #ffffff !important; padding: 16px 35px;
-                    text-decoration: none; border-radius: 8px; font-weight: 700;
-                    display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                    text-transform: uppercase; letter-spacing: 1px;
-                }}
-                .footer {{ text-align: center; font-size: 12px; color: #777; margin-top: 20px; }}
-                .note {{ color: #e11d48; font-size: 13px; }}
-            </style>
-        </head>
-        <body>
-            <div class="email-container">
-                <div class="header"><h1>🚗 {system}</h1></div>
-                <div class="content">
-                    <p>Hello,</p>
-                    <p>We received a request to reset your password for your <strong>{system}</strong> account.</p>
-                    <p>To set a new password, please click the secure button below:</p>
-                    <div class="button-container">
-                        <a href="{reset_link}" class="button">Reset Password Now</a>
-                    </div>
-                    <p class="note">⚠️ This link will expire in 60 minutes for your security.</p>
-                    <p>If you did not request this reset, you can safely ignore this email.</p>
-                    <p>Best regards,<br>The {system} Team</p>
-                </div>
-                <div class="footer">&copy; 2026 {system}. All rights reserved.</div>
-            </div>
-        </body>
-        </html>
-        """
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Password Reset</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <!-- Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f1a;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%);border-radius:20px 20px 0 0;padding:40px 40px 30px;text-align:center;">
+              <div style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:50%;width:72px;height:72px;line-height:72px;font-size:32px;margin-bottom:16px;">🚗</div>
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">{system}</h1>
+              <p style="margin:8px 0 0;color:#a5b4fc;font-size:14px;letter-spacing:2px;text-transform:uppercase;">Security Update</p>
+              <div style="width:60px;height:3px;background:linear-gradient(90deg,#818cf8,#c084fc);margin:20px auto 0;border-radius:2px;"></div>
+            </td>
+          </tr>
+
+          <!-- GREETING -->
+          <tr>
+            <td style="background:#1e1b4b;padding:32px 40px 0;">
+              <p style="margin:0;color:#e2e8f0;font-size:16px;">Hello,</p>
+              <p style="margin:12px 0 0;color:#94a3b8;font-size:14px;line-height:1.6;">
+                We received a request to reset your password for your <strong>{system}</strong> account.
+              </p>
+            </td>
+          </tr>
+
+          <!-- ACTION -->
+          <tr>
+            <td style="background:#1e1b4b;padding:32px 40px;text-align:center;">
+              <a href="{reset_link}"
+                 style="display:inline-block;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 40px;border-radius:50px;box-shadow:0 8px 30px rgba(99,102,241,0.5);">
+                Reset Password Now
+              </a>
+              <p style="margin:20px 0 0;color:#64748b;font-size:12px;">This link will expire in 60 minutes for your security.</p>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:#0f0f1a;border-radius:0 0 20px 20px;padding:30px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+              <p style="margin:0;color:#4a5568;font-size:12px;">Sent by {system} Security Team. Do not reply to this email.</p>
+              <p style="margin:8px 0 0;color:#374151;font-size:11px;">&copy; 2026 {system}. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>"""
 
         text = (
             f"Hello,\n\nYou requested a password reset for your {system} account.\n"
@@ -258,7 +321,12 @@ def login_view(request):
             "ProfilePicture": user.profilepicture,
         }
 
-        target_url = ROLE_TO_DASHBOARD.get(mapped_role, 'index.html')
+        # Role-based redirection logic
+        if mapped_role == 'data-analyst':
+            target_url = '/ml-dashboard'
+        else:
+            target_url = '/index.html'
+
         return JsonResponse({"success": True, "redirect": target_url})
 
     except Exception as e:
@@ -305,11 +373,7 @@ def register_view(request):
 
         # Create the corresponding Client profile record
         if role == 'Client':
-            Client.objects.create(
-                user=new_user,
-                registrationdate=datetime.date.today(),
-                customercategory='General'
-            )
+            Client.objects.create(user=new_user, registrationdate=datetime.date.today())
         elif role == 'StockKeeper':
             Stockkeeper.objects.create(user=new_user)
 
@@ -426,6 +490,27 @@ def reset_password_view(request):
 #  USER VIEWS
 # ========================================================================
 
+def _sync_user_role(u):
+    from .models import Client, Admin, Technician, Servicemanager, Financemanager, Topmanager, Stockkeeper, Dataanalyst
+    import datetime
+    role_model_map = {
+        'Client': Client, 'Admin': Admin, 'Technician': Technician,
+        'ServiceManager': Servicemanager, 'FinanceManager': Financemanager,
+        'TopManager': Topmanager, 'StockKeeper': Stockkeeper, 'DataAnalyst': Dataanalyst
+    }
+    role = u.role
+    model_class = role_model_map.get(role)
+    for r, m_class in role_model_map.items():
+        if r != role:
+            m_class.objects.filter(user=u).delete()
+    if model_class and not model_class.objects.filter(user=u).exists():
+        if role == 'Client':
+            model_class.objects.create(user=u, registrationdate=datetime.date.today())
+        elif role == 'Technician':
+            model_class.objects.create(user=u, hiredate=datetime.date.today(), currentstatus='Available')
+        else:
+            model_class.objects.create(user=u)
+
 @csrf_exempt
 def me_view(request):
     """GET/POST /api/me"""
@@ -435,27 +520,41 @@ def me_view(request):
 
     if request.method == 'GET':
         try:
-            user = Users.objects.get(user_id=user_data['user_id'])
+            uid = user_data.get('user_id')
+            if not uid:
+                return _json_error('Session error: User ID missing', 400)
+
+            # --- DEEP SYNC LOYALTY ---
+            _award_loyalty_point(uid)
+            # -------------------------
+                
+            user = Users.objects.filter(user_id=uid).first()
+            if not user:
+                return _json_error('User not found in database', 404)
+                
             client = Client.objects.filter(user_id=user.user_id).first()
+
+            # Read loyalty points from database (allows manual edits to stick)
+            loyalty_count = user.loyalty_points or 0
 
             result = {
                 'User_ID': user.user_id,
-                'FirstName': user.firstname,
-                'LastName': user.lastname,
-                'Email': user.email,
-                'Phone': user.phone,
-                'Address': user.address,
-                'Role': user.role,
-                'ProfilePicture': user.profilepicture,
-                'RegistrationDate': client.registrationdate.isoformat() if client and client.registrationdate else None,
-                'CustomerCategory': client.customercategory if client else None,
+                'FirstName': user.firstname or '',
+                'LastName': user.lastname or '',
+                'Email': user.email or '',
+                'Phone': user.phone or '',
+                'Address': user.address or '',
+                'Role': user.role or '',
+                'ProfilePicture': user.profilepicture or '',
+                'RegistrationDate': (client.registrationdate.isoformat() if client and client.registrationdate else ''),
+                'LoyaltyPoints': user.loyalty_points
             }
             return JsonResponse(result)
-        except Users.DoesNotExist:
-            return _json_error('User not found', 404)
         except Exception as e:
-            print("DB Error (/api/me):", e)
-            return _json_error('Database error', 500)
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Me View CRITICAL Error: {error_details}")
+            return _json_error(f'Database error: {str(e)}', 500)
 
     elif request.method == 'POST':
         try:
@@ -466,6 +565,18 @@ def me_view(request):
             user.lastname = data.get('LastName', user.lastname)
             user.phone = data.get('Phone', user.phone)
             user.address = data.get('Address', user.address)
+            
+            new_email = data.get('Email', user.email)
+            if new_email and new_email != user.email:
+                if Users.objects.filter(email=new_email).exclude(user_id=user.user_id).exists():
+                    return _json_error('This email is already in use by another account.', 400)
+                user.email = new_email
+
+            user.save()
+            
+            # Update session name
+            user_data['name'] = f"{user.firstname} {user.lastname}".strip() or "User"
+            request.session['user'] = user_data
 
             profile_pic_base64 = data.get('ProfilePicture')
             if profile_pic_base64 and profile_pic_base64.startswith('data:image/'):
@@ -594,6 +705,7 @@ def users_list_create(request):
                 address=address,
                 role=role,
             )
+            _sync_user_role(new_user)
             return _json_ok({'user_id': new_user.user_id})
         except Exception as e:
             print("DB Error (Users POST):", e)
@@ -623,6 +735,7 @@ def users_detail(request, user_id):
                 user.password = hashed
 
             user.save()
+            _sync_user_role(user)
             return _json_ok()
         except Users.DoesNotExist:
             return _json_error('User not found', 404)
@@ -691,6 +804,27 @@ def vehicles_view(request):
             # Map keys to what frontend expects
             mapped = []
             for v in result:
+                # 1. Find the LATEST appointment for this vehicle
+                latest_app = Appointment.objects.filter(vehicle_id=v['vehicle_id']).order_by('-appointment_id').first()
+
+                is_in_service = False
+                current_status = None
+                active_jc_id = None
+                active_app_id = None
+
+                if latest_app:
+                    active_app_id = latest_app.appointment_id
+                    # 2. Check if this appointment has a Jobcard
+                    jc = Jobcard.objects.filter(appointment=latest_app).first()
+                    
+                    # Use status from Jobcard if it exists, otherwise Appointment
+                    current_status = jc.status if jc else latest_app.status
+                    active_jc_id = jc.jobcard_id if jc else None
+
+                    # If not finished, it is "in service"
+                    if current_status not in ['Completed', 'Cancelled', 'Closed']:
+                        is_in_service = True
+
                 mapped.append({
                     'Vehicle_ID': v['vehicle_id'],
                     'User_ID': v['user_id'],
@@ -701,6 +835,10 @@ def vehicles_view(request):
                     'Mileage': v['mileage'],
                     'Make': v['make'],
                     'Color': v['color'],
+                    'is_in_service': is_in_service,
+                    'active_jobcard_id': active_jc_id,
+                    'active_appointment_id': active_app_id,
+                    'current_status': current_status
                 })
             return JsonResponse(mapped, safe=False)
         except Exception as e:
@@ -782,7 +920,6 @@ def appointments_view(request):
         service_type = data.get('service_type')
         date = data.get('date')
         time = data.get('time')
-        notes = data.get('notes', '')
 
         if not vehicle_id or not service_type or not date or not time:
             return _json_error('Missing required fields')
@@ -797,10 +934,9 @@ def appointments_view(request):
         Appointment.objects.create(
             user_id=user_data['user_id'],
             vehicle_id=vehicle_id,
-            starttime=start_time,
+            date_time=start_time,
             status='Scheduled',
             service_type=service_type,
-            notes=notes,
         )
         return _json_ok()
     except Exception as e:
@@ -861,7 +997,18 @@ def admin_appointments_view(request):
         return _json_error('Forbidden', 403)
 
     try:
-        qs = Appointment.objects.select_related('user', 'vehicle').order_by('-starttime')
+        # Custom status ordering: Scheduled/Confirmed (1), In Progress (2), Completed (3), Cancelled (4)
+        qs = Appointment.objects.select_related('user', 'vehicle').annotate(
+            status_order=Case(
+                When(status__iexact='Scheduled', then=Value(1)),
+                When(status__iexact='Confirmed', then=Value(1)),
+                When(status__iexact='In Progress', then=Value(2)),
+                When(status__iexact='Completed', then=Value(3)),
+                When(status__iexact='Cancelled', then=Value(4)),
+                default=Value(1),
+                output_field=IntegerField(),
+            )
+        ).order_by('status_order', '-date_time')
         
         status_filter = request.GET.get('status')
         from_date = request.GET.get('from')
@@ -870,19 +1017,18 @@ def admin_appointments_view(request):
         if status_filter:
             qs = qs.filter(status__iexact=status_filter)
         if from_date:
-            qs = qs.filter(starttime__gte=from_date)
+            qs = qs.filter(date_time__gte=from_date)
         if to_date:
-            qs = qs.filter(starttime__lte=f"{to_date} 23:59:59")
+            qs = qs.filter(date_time__lte=f"{to_date} 23:59:59")
             
         paginated = _paginate_queryset(qs, request)
         result = []
         for a in paginated['page_obj']:
             result.append({
                 'Appointment_ID': a.appointment_id,
-                'StartTime': _serialize(a.starttime),
+                'date_time': _serialize(a.date_time),
                 'Status': a.status,
                 'service_type': a.service_type,
-                'notes': a.notes,
                 'ClientEmail': a.user.email if a.user else None,
                 'ClientName': f"{a.user.firstname} {a.user.lastname}" if a.user else None,
                 'Make': a.vehicle.make if a.vehicle else None,
@@ -921,7 +1067,7 @@ def review_appointment_view(request):
             return _json_error('Appointment not found', 404)
 
         if action == 'approve':
-            apt.status = 'Confirmed'
+            apt.status = 'In Progress'
             apt.save()
 
             # Prevent duplicate Jobcards
@@ -930,7 +1076,7 @@ def review_appointment_view(request):
                     appointment=apt,
                     vehicle_id=apt.vehicle_id,
                     user_id=apt.user_id,
-                    status='Pending',
+                    status='Scheduled',
                     createdat=datetime.datetime.now(),
                 )
         else:
@@ -958,17 +1104,6 @@ def service_history_view(request):
         return _json_error('Forbidden', 403)
 
     try:
-        # AGGRESSIVE DB SYNC: Fix all mismatched statuses before querying
-        from .models import Jobcard
-        Appointment.objects.filter(
-            status__in=['Confirmed', 'In Progress'],
-            jobcard__invoice__isnull=False
-        ).update(status='Completed')
-        Jobcard.objects.filter(
-            status__in=['Confirmed', 'In Progress', 'Assigned'],
-            invoice__isnull=False
-        ).update(status='Completed')
-
         qs = Appointment.objects.select_related('vehicle').annotate(
             status_priority=Case(
                 When(status='Scheduled', then=Value(1)),
@@ -979,7 +1114,7 @@ def service_history_view(request):
                 default=Value(5),
                 output_field=IntegerField(),
             )
-        ).order_by('status_priority', '-starttime')
+        ).order_by('status_priority', '-date_time')
         
         if user_data['role'] not in ['admin', 'top-manager']:
             qs = qs.filter(user_id=user_data['user_id'])
@@ -997,7 +1132,7 @@ def service_history_view(request):
         for a in paginated['page_obj']:
             row = {
                 'Appointment_ID': a.appointment_id,
-                'CreatedAt': _serialize(a.starttime),
+                'date_time': _serialize(a.date_time),
                 'Status': a.status,
                 'service_type': a.service_type,
                 'Make': a.vehicle.make if a.vehicle else None,
@@ -1083,7 +1218,6 @@ def work_orders_view(request):
                 'JobCard_ID': j.jobcard_id,
                 'Status': j.status,
                 'CreatedAt': _serialize(j.createdat),
-                'ReportedIssues': j.reportedissues,
                 'Vehicle_ID': j.vehicle.vehicle_id if j.vehicle else None,
                 'Make': j.vehicle.make if j.vehicle else None,
                 'Model': j.vehicle.model if j.vehicle else None,
@@ -1169,12 +1303,12 @@ def assign_work_order_view(request):
                 return _json_error('Technician not found', 404)
 
             job.technician = tech
-            if job.status == 'Pending':
+            if job.status in ['Scheduled', 'Confirmed']:
                 job.status = 'In Progress'
         else:
             job.technician = None
             if job.status == 'In Progress':
-                job.status = 'Pending'
+                job.status = 'Scheduled'
 
         job.save()
 
@@ -1219,12 +1353,37 @@ def update_work_order_status_view(request):
             if job.status == 'Closed' and not is_manager:
                 return _json_error('Cannot update a closed work order.', 400)
             
-            # Simple validation - Removed Queued and Waiting on Parts per user request
-            valid_statuses = ['Pending', 'In Progress', 'Completed', 'Closed']
+            # Simple validation
+            valid_statuses = ['Scheduled', 'Confirmed', 'In Progress', 'Completed', 'Cancelled']
             if new_status not in valid_statuses:
                 return _json_error(f'Invalid status: {new_status}')
                 
+            if new_status.lower() == 'completed':
+                # Update appointment status and award loyalty points
+                from .models import Appointment
+                app = Appointment.objects.filter(appointment_id=job.appointment_id).first()
+                if app and app.status.lower() != 'completed':
+                    app.status = 'Completed'
+                    app.save()
+                    _award_loyalty_point(app.user_id)
+                    
+                    # Notify Client via Email
+                    try:
+                        from .models import Users
+                        client = Users.objects.filter(user_id=app.user_id).first()
+                        if client and client.email:
+                            vehicle_name = f"{app.vehicle.year or ''} {app.vehicle.make} {app.vehicle.model}".strip()
+                            _send_service_completion_email(
+                                client.email, 
+                                f"{client.firstname} {client.lastname}",
+                                vehicle_name,
+                                app.appointment_id
+                            )
+                    except Exception as e:
+                        print(f"Failed to trigger completion email: {e}")
+            
             job.status = new_status
+            job.save()
 
         if note:
             # Persistent Tech Notes column
@@ -1316,6 +1475,26 @@ def log_work_time_view(request):
             job.total_hours = decimal.Decimal(str(round(float(total), 2)))
             job.status = 'Completed'
             job.save()
+            # award point if appointment exists
+            if job.appointment and job.appointment.status != 'Completed':
+                job.appointment.status = 'Completed'
+                job.appointment.save()
+                _award_loyalty_point(job.appointment.user_id)
+                
+                # Notify Client via Email
+                try:
+                    from .models import Users
+                    client = Users.objects.filter(user_id=job.appointment.user_id).first()
+                    if client and client.email:
+                        vehicle_name = f"{job.vehicle.year or ''} {job.vehicle.make} {job.vehicle.model}".strip()
+                        _send_service_completion_email(
+                            client.email, 
+                            f"{client.firstname} {client.lastname}",
+                            vehicle_name,
+                            job.appointment_id
+                        )
+                except Exception as e:
+                    print(f"Failed to trigger completion email (log_time): {e}")
             return _json_ok()
 
     except Exception as e:
@@ -1458,11 +1637,33 @@ def complete_work_order_view(request):
         client_id = job.appointment.user_id
         now = datetime.datetime.now()
 
-        # Update jobcard (Invoice will be created manually by Finance)
+        # Update jobcard
         job.totallaborcost = labor_cost
         job.totalpartscost = parts_cost
         job.status = 'Completed'
         job.save()
+
+        # Update appointment status and award loyalty points
+        if job.appointment:
+            if job.appointment.status != 'Completed':
+                job.appointment.status = 'Completed'
+                job.appointment.save()
+                _award_loyalty_point(job.appointment.user_id)
+
+                # Notify Client via Email
+                try:
+                    from .models import Users
+                    client = Users.objects.filter(user_id=job.appointment.user_id).first()
+                    if client and client.email:
+                        vehicle_name = f"{job.vehicle.year or ''} {job.vehicle.make} {job.vehicle.model}".strip()
+                        _send_service_completion_email(
+                            client.email, 
+                            f"{client.firstname} {client.lastname}",
+                            vehicle_name,
+                            job.appointment_id
+                        )
+                except Exception as e:
+                    print(f"Failed to trigger completion email (complete_wo): {e}")
 
         return _json_ok()
     except Exception as e:
@@ -1481,7 +1682,6 @@ SERVICE_PRICES = {
     'Engine Diagnostics': 600,
     'Tyre Replacement': 200,
     'AC Service': 500,
-    'Inspection': 250,
     'Battery Replacement': 150,
     'Car Wash': 100,
     'Suspension Check': 400,
@@ -1517,9 +1717,9 @@ def invoice_preview_view(request):
         service_type = jc.appointment.service_type if jc.appointment else 'General Service'
         labor_price = SERVICE_PRICES.get(service_type, 500)
 
-        # --- Inspection fee if inspection exists ---
+        # --- Inspection fee removed per user request (replaced by book check) ---
         inspection = Inspection.objects.filter(jobcard=jc).first()
-        inspection_fee = SERVICE_PRICES['Inspection'] if inspection else 0
+        inspection_fee = 0
 
         # --- Parts cost from jobcardparts ---
         parts_qs = Jobcardparts.objects.filter(jobcard=jc).select_related('item')
@@ -1582,40 +1782,73 @@ def client_invoices_view(request):
     try:
         uid = user_data['user_id']
 
-        unpaid = list(Invoice.objects.filter(
+        # All unpaid invoices for this user
+        all_unpaid = list(Invoice.objects.filter(
             user_id=uid, status='Unpaid'
-        ).order_by('-invoicedate').values(
-            'invoice_id', 'invoicedate', 'duedate', 'total', 'status'
-        ))
-        unpaid_mapped = [{
-            'Invoice_ID': i['invoice_id'],
-            'InvoiceDate': _serialize(i['invoicedate']),
-            'DueDate': _serialize(i['duedate'] or (i['invoicedate'] + datetime.timedelta(days=14) if i['invoicedate'] else None)),
-            'Total': _serialize(i['total']),
-            'Status': i['status'],
-        } for i in unpaid]
+        ).select_related('jobcard__appointment').order_by('-invoicedate'))
 
-        # Paid history can be many, paginate it
-        paid_qs = Payment.objects.filter(
+        # Separate: check invoices vs service invoices
+        check_unpaid_mapped = []
+        service_unpaid_mapped = []
+        for inv in all_unpaid:
+            jc = inv.jobcard
+            is_check = (
+                jc is not None and
+                jc.appointment is not None and
+                (jc.appointment.service_type or '').strip().lower() == 'check'
+            )
+            entry = {
+                'Invoice_ID': inv.invoice_id,
+                'InvoiceDate': _serialize(inv.invoicedate),
+                'DueDate': _serialize(inv.duedate or (inv.invoicedate + datetime.timedelta(days=14) if inv.invoicedate else None)),
+                'Total': _serialize(inv.total),
+                'Status': 'Check-Unpaid' if is_check else 'Unpaid',
+                'is_check': is_check,
+            }
+            if is_check:
+                check_unpaid_mapped.append(entry)
+            else:
+                service_unpaid_mapped.append(entry)
+
+        # All paid — separate check vs service via payment → invoice → jobcard → appointment
+        all_paid_payments = Payment.objects.filter(
             user_id=uid,
             invoice__status='Paid'
-        ).select_related('invoice').order_by('-paymentdate')
+        ).select_related('invoice__jobcard__appointment').order_by('-paymentdate')
 
-        paginated = _paginate_queryset(paid_qs, request)
-        paid_mapped = [{
-            'Invoice_ID': p.invoice_id,
-            'Total': _serialize(p.invoice.total) if p.invoice else None,
-            'Status': 'Paid',
-            'PaymentDate': _serialize(p.paymentdate),
-            'Method': p.method,
-        } for p in paginated['page_obj']]
+        paginated = _paginate_queryset(all_paid_payments, request)
+        paid_mapped = []
+        check_paid_mapped = []
+        for p in paginated['page_obj']:
+            inv = p.invoice
+            is_check = False
+            if inv:
+                jc = inv.jobcard
+                is_check = (
+                    jc is not None and
+                    jc.appointment is not None and
+                    (jc.appointment.service_type or '').strip().lower() == 'check'
+                )
+            entry = {
+                'Invoice_ID': p.invoice_id,
+                'Total': _serialize(inv.total) if inv else None,
+                'Status': 'Check-Paid' if is_check else 'Paid',
+                'PaymentDate': _serialize(p.paymentdate),
+                'Method': p.method,
+                'is_check': is_check,
+            }
+            if is_check:
+                check_paid_mapped.append(entry)
+            else:
+                paid_mapped.append(entry)
 
-        # For this specific view, we'll wrap the paginated 'paid' data
         paginated['paid_data'] = paid_mapped
         paginated.pop('page_obj', None)
         return JsonResponse({
-            'unpaid': unpaid_mapped,
-            'paid_paginated': paginated
+            'unpaid': service_unpaid_mapped,
+            'paid_paginated': paginated,
+            'check_unpaid': check_unpaid_mapped,
+            'check_paid': check_paid_mapped,
         })
     except Exception as e:
         print("DB Error:", e)
@@ -1696,7 +1929,7 @@ def admin_invoices_view(request):
             labor_price = SERVICE_PRICES.get(service_type, 500)
 
             inspection = Inspection.objects.filter(jobcard=jc).first()
-            inspection_fee = SERVICE_PRICES['Inspection'] if inspection else 0
+            inspection_fee = 0
 
             parts_qs = Jobcardparts.objects.filter(jobcard=jc).select_related('item')
             parts_total = sum(float(p.item.unitprice or 0) * (p.quantityused or 0) for p in parts_qs)
@@ -1711,19 +1944,32 @@ def admin_invoices_view(request):
             # Total after tax, then subtract discount as requested by user
             total = round(subtotal + tax - discount, 2)
 
+            invoice_date_str = data.get('invoice_date')
+            due_date_str = data.get('due_date')
+            
+            invoice_date = datetime.date.today()
+            if invoice_date_str:
+                try:
+                    parsed_date = datetime.datetime.strptime(invoice_date_str, '%Y-%m-%d').date()
+                    if parsed_date >= datetime.date.today():
+                        invoice_date = parsed_date
+                except Exception: pass
+
             due_date = None
             if due_date_str:
                 try:
-                    due_date = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    parsed_due = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                    if parsed_due >= invoice_date:
+                        due_date = parsed_due
                 except Exception:
                     pass
             
             if not due_date:
-                due_date = datetime.date.today() + datetime.timedelta(days=14)
+                due_date = invoice_date + datetime.timedelta(days=14)
 
             invoice = Invoice.objects.create(
                 user_id=jc.user_id,
-                invoicedate=datetime.date.today(),
+                invoicedate=invoice_date,
                 duedate=due_date,
                 jobcard=jc,
                 subtotallabor=subtotal_labor,
@@ -1740,8 +1986,10 @@ def admin_invoices_view(request):
             jc.save()
 
             if jc.appointment:
-                jc.appointment.status = 'Completed'
-                jc.appointment.save()
+                if jc.appointment.status != 'Completed':
+                    jc.appointment.status = 'Completed'
+                    jc.appointment.save()
+                    _award_loyalty_point(jc.appointment.user_id)
 
             return _json_ok({'Invoice_ID': invoice.invoice_id, 'Total': total})
         except Exception as e:
@@ -1876,9 +2124,6 @@ def admin_payments_view(request):
         from django.db.models import Sum
         total_collected_val = Payment.objects.aggregate(Sum('amount'))['amount__sum'] or 0
         
-        digital_count = Payment.objects.exclude(method='Cash').count()
-        cash_count = Payment.objects.filter(method='Cash').count()
-        
         paginated = _paginate_queryset(qs, request)
         result = []
         for p in paginated['page_obj']:
@@ -1895,8 +2140,6 @@ def admin_payments_view(request):
         paginated['data'] = result
         paginated['total_payments_count'] = total_payments_count
         paginated['total_collected'] = float(total_collected_val)
-        paginated['digital_count'] = digital_count
-        paginated['cash_count'] = cash_count
         paginated.pop('page_obj', None)
         return JsonResponse(paginated, safe=False)
     except Exception as e:
@@ -1914,9 +2157,9 @@ def admin_mark_paid_view(request, invoice_id):
         return _json_error('Forbidden', 403)
     try:
         data = json.loads(request.body) if request.body else {}
-        method = data.get('method', 'Cash')
-        if method not in ['CreditCard', 'VodafoneCash', 'Fawry', 'InstaPay', 'Cash']:
-            method = 'Cash'
+        method = data.get('method', 'CreditCard')
+        if method not in ['CreditCard']:
+            method = 'CreditCard'
 
         invoice = Invoice.objects.filter(invoice_id=invoice_id).first()
         if not invoice:
@@ -1941,8 +2184,10 @@ def admin_mark_paid_view(request, invoice_id):
             invoice.jobcard.status = 'Completed'
             invoice.jobcard.save()
             if invoice.jobcard.appointment:
-                invoice.jobcard.appointment.status = 'Completed'
-                invoice.jobcard.appointment.save()
+                if invoice.jobcard.appointment.status != 'Completed':
+                    invoice.jobcard.appointment.status = 'Completed'
+                    invoice.jobcard.appointment.save()
+                    _award_loyalty_point(invoice.jobcard.appointment.user_id)
 
         # Path B: Find via Jobcards that point to THIS invoice
         # (This handles the case where multiple jobcards might be linked)
@@ -1952,18 +2197,10 @@ def admin_mark_paid_view(request, invoice_id):
             j.status = 'Completed'
             j.save()
             if j.appointment:
-                j.appointment.status = 'Completed'
-                j.appointment.save()
-
-        # Path C: Final fallback sync for this user's related appointments 
-        # that are in 'Confirmed' status and belong to this invoice's items
-        try:
-            # Safely find appointment IDs related to this invoice via Jobcards
-            apt_ids = linked_jobs.exclude(appointment__isnull=True).values_list('appointment', flat=True)
-            if apt_ids:
-                Appointment.objects.filter(appointment_id__in=apt_ids).update(status='Completed')
-        except Exception as sync_err:
-            print("Sync Fallback Error:", sync_err)
+                if j.appointment.status != 'Completed':
+                    j.appointment.status = 'Completed'
+                    j.appointment.save()
+                    _award_loyalty_point(j.appointment.user_id)
 
         return _json_ok({'message': f'Invoice marked as Paid via {method}'})
     except Exception as e:
@@ -1971,7 +2208,7 @@ def admin_mark_paid_view(request, invoice_id):
         return _json_error('Database error', 500)
 
 
-VALID_PAYMENT_METHODS = ['CreditCard', 'VodafoneCash', 'Fawry', 'InstaPay', 'Cash']
+VALID_PAYMENT_METHODS = ['CreditCard']
 
 @csrf_exempt
 def payments_view(request):
@@ -1997,7 +2234,7 @@ def payments_view(request):
         invoice = Invoice.objects.filter(
             invoice_id=invoice_id,
             user_id=user_data['user_id']
-        ).first()
+        ).select_related('jobcard__appointment').first()
 
         if not invoice:
             return _json_error('Invoice not found or not yours', 404)
@@ -2005,42 +2242,80 @@ def payments_view(request):
         if invoice.status == 'Paid':
             return _json_error('Invoice is already paid')
 
+        # Detect if this is a Check invoice via the linked jobcard → appointment
+        from .models import Jobcard, Appointment
+        jc = invoice.jobcard
+        is_check_invoice = (
+            jc is not None and
+            jc.appointment is not None and
+            (jc.appointment.service_type or '').strip().lower() == 'check'
+        )
+
+        # Apply loyalty points logic
+        user = Users.objects.filter(user_id=user_data['user_id']).first()
+        final_amount = invoice.total
+        points_to_deduct = 0
+
+        if user:
+            # 30+ points: Checks are free
+            if is_check_invoice and (user.loyalty_points or 0) >= 30:
+                final_amount = 0
+                points_to_deduct = 30
+            # 20+ points: 50% discount on anything
+            elif (user.loyalty_points or 0) >= 20:
+                from decimal import Decimal
+                final_amount = invoice.total * Decimal('0.5')
+                points_to_deduct = 20
+
+        if points_to_deduct > 0:
+            user.loyalty_points = max(0, (user.loyalty_points or 0) - points_to_deduct)
+            user.save()
+            
+            # Update the invoice record to permanently reflect the discount
+            from decimal import Decimal
+            loyalty_discount_val = Decimal(str(invoice.total)) - Decimal(str(final_amount))
+            invoice.discount = (invoice.discount or 0) + loyalty_discount_val
+            invoice.total = final_amount
+
         Payment.objects.create(
             user_id=user_data['user_id'],
             invoice=invoice,
             paymentdate=datetime.date.today(),
-            amount=invoice.total,
+            amount=final_amount,
             method=method,
         )
         invoice.status = 'Paid'
         invoice.save()
 
-        # Update associated Jobcards & Appointments to 'Completed'
-        # 1. Direct link on invoice
-        if invoice.jobcard:
-            invoice.jobcard.status = 'Completed'
-            invoice.jobcard.save()
-            if invoice.jobcard.appointment:
-                invoice.jobcard.appointment.status = 'Completed'
-                invoice.jobcard.appointment.save()
-        
-        # 2. Reverse link (Jobcard.invoice)
-        from .models import Jobcard, Appointment
-        linked_jobs = Jobcard.objects.filter(invoice=invoice)
-        for j in linked_jobs:
-            j.status = 'Completed'
-            j.save()
-            if j.appointment:
-                j.appointment.status = 'Completed'
-                j.appointment.save()
+        if is_check_invoice:
+            # Check invoice paid → activate Jobcard to Scheduled for technician
+            if jc.status == 'Pending Payment':
+                jc.status = 'Scheduled'
+                jc.save()
+            Jobcard.objects.filter(invoice=invoice, status='Pending Payment').update(status='Scheduled')
+            return _json_ok({'message': f'Check invoice paid via {method}. Your inspection is now scheduled!'})
 
-        # 3. Final fallback sync
-        try:
-            apt_ids = linked_jobs.exclude(appointment__isnull=True).values_list('appointment', flat=True)
-            if apt_ids:
-                Appointment.objects.filter(appointment_id__in=apt_ids).update(status='Completed')
-        except:
-            pass
+        # --- Regular service invoice flow → Completed ---
+        def _is_check(appt):
+            return appt and (appt.service_type or '').strip().lower() == 'check'
+
+        def _update_job(j):
+            if _is_check(j.appointment):
+                j.status = 'Scheduled'
+            else:
+                if j.status != 'Completed':
+                    j.status = 'Completed'
+                    if j.appointment:
+                        if j.appointment.status != 'Completed':
+                            j.appointment.status = 'Completed'
+                            j.appointment.save()
+                            _award_loyalty_point(j.appointment.user_id)
+                    j.save()
+
+        if invoice.jobcard:
+            _update_job(invoice.jobcard)
+        for j in Jobcard.objects.filter(invoice=invoice):
+            _update_job(j)
 
         return _json_ok({'message': f'Payment via {method} recorded successfully!'})
     except Exception as e:
@@ -2321,9 +2596,11 @@ def inspection_list_create(request):
         user_data = _get_session_user(request)
         try:
             qs = Inspection.objects.select_related('vehicle', 'jobcard__vehicle').order_by('-date', '-inspection_id')
-            # Technicians only see their own inspections
+            # Role-based filtering
             if user_data and user_data.get('role') == 'technician':
                 qs = qs.filter(jobcard__technician_id=user_data['user_id'])
+            elif user_data and user_data.get('role') == 'client':
+                qs = qs.filter(jobcard__user_id=user_data['user_id'])
             
             paginated = _paginate_queryset(qs, request)
             result = []
@@ -2433,10 +2710,10 @@ def chat_view(request):
         h_info = "\n".join(h_list) if h_list else "None."
         
         # 3. Upcoming Appointments
-        appts = Appointment.objects.filter(user_id=user_data['user_id']).exclude(status__in=['Cancelled', 'Completed']).order_by('starttime')[:5]
+        appts = Appointment.objects.filter(user_id=user_data['user_id']).exclude(status__in=['Cancelled', 'Completed']).order_by('date_time')[:5]
         a_list = []
         for a in appts:
-            a_date = a.starttime.strftime('%Y-%m-%d %H:%M') if a.starttime else "TBD"
+            a_date = a.date_time.strftime('%Y-%m-%d %H:%M') if a.date_time else "TBD"
             a_list.append(f"- ID: #{a.appointment_id}, {a_date}, {a.vehicle.make} {a.vehicle.model}, Status: {a.status}")
         a_info = "\n".join(a_list) if a_list else "None."
 
@@ -2448,11 +2725,12 @@ def chat_view(request):
             f"--- UPCOMING APPOINTMENTS ---\n{a_info}\n\n"
             f"--- ACCOUNT STATS ---\nTotal Maintenance Spend: EGP {total_spent}\n\n"
             "INSTRUCTIONS:\n"
-            "1. Use the data above to answer specifically about the user's cars, costs, and bookings.\n"
-            "2. If the user asks about a car's status, refer to the 'VEHICLE FLEET' and 'SERVICE HISTORY'.\n"
-            "3. If they ask about an appointment, check 'UPCOMING APPOINTMENTS'.\n"
-            "4. Be professional, concise, and helpful. Always reply in the same language the user uses (Arabic/English).\n"
-            "5. If they ask about something not in the data, tell them you don't have that specific record but offer to help with what you do know."
+            "1. You are strictly restricted to the user's database records provided above.\n"
+            "2. If the user asks about a specific vehicle (e.g., 'BMW M4'), you MUST first check if it exists in the 'VEHICLE FLEET'.\n"
+            "3. If the vehicle IS NOT in the fleet, DO NOT provide general information about it. Instead, explicitly reply that this vehicle is not registered in their account.\n"
+            "4. If the vehicle IS in the fleet, provide its details based solely on the provided 'VEHICLE FLEET' and 'SERVICE HISTORY'.\n"
+            "5. Be professional, concise, and helpful. Always reply in the exact same language the user uses (e.g., Arabic or English).\n"
+            "6. NEVER hallucinate or invent vehicle data. Only use the provided records."
         )
 
         import requests
@@ -2476,7 +2754,7 @@ def chat_view(request):
                     ai_text = "I received an empty response. Please try again."
             else:
                 err_msg = result.get('error', {}).get('message', 'Unknown error')
-                ai_text = f"Connection error. Please try again. (Ref: {resp.status_code})"
+                ai_text = f"Connection error. Please try again. (Ref: {resp.status_code}) - Details: {err_msg}"
                 print(f"[AI ERROR] {resp.status_code}: {err_msg}")
 
         except Exception as e:
@@ -2522,22 +2800,188 @@ def uninvoiced_jobcards_view(request):
 
 def serve_html(request, page_path):
     """Serve any HTML file as a template."""
-    # Special case: index and reset-password don't need auth
-    if any(x in page_path for x in ['index.html', 'reset-password.html']):
+    # Special case: public pages don't need auth
+    public_pages = ['index.html', 'reset-password.html', 'login.html', 'register.html', 'forgot-password.html']
+    
+    user_data = _get_session_user(request)
+    
+    # If user is logged in and tries to access index or login, redirect to their dashboard
+    is_root_or_login = any(x in page_path for x in ['index.html', 'login.html'])
+    if user_data and is_root_or_login:
+        target = ROLE_TO_DASHBOARD.get(user_data['role'], 'index.html')
+        if target != 'index.html':
+            return HttpResponseRedirect('/' + target)
+
+    # Check if page is in public list
+    if any(x in page_path for x in public_pages):
         response = render(request, page_path)
         patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
         return response
     
-    # Check session
-    user_data = _get_session_user(request)
+    # Check session for protected pages
     if not user_data:
-        # Redirect to index
-        prefix = '../../' if 'pages/' in page_path else ''
-        return HttpResponseRedirect(f'/{prefix}index.html')
+        return HttpResponseRedirect('/index.html')
+
+    # Security & Logic: Redirect direct access to protected dashboards to their dedicated views
+    if 'pages/analytics/data-dashboard.html' in page_path:
+        if user_data.get('role') == 'data-analyst':
+            return HttpResponseRedirect('/ml-dashboard')
+        else:
+            return HttpResponseRedirect('/index.html')
 
     response = render(request, page_path, {'user_data': user_data})
     patch_cache_control(response, no_cache=True, no_store=True, must_revalidate=True)
     return response
+
+
+def ml_dashboard(request):
+    """
+    ML Dashboard View - Protected.
+    Only allows access for DataAnalyst role.
+    Integrates ML models for health score prediction.
+    """
+    user_data = _get_session_user(request)
+    
+    # Access Control: Only DataAnalyst
+    if not user_data or user_data.get('role') != 'data-analyst':
+        return HttpResponseRedirect('/index.html')
+
+    prediction = None
+    selected_truck = None
+    truck_ids = []
+    error_msg = None
+    
+    # Initialize default stats to prevent template errors
+    stats = {
+        'total_services': 0,
+        'avg_health': 0,
+        'critical_trucks': 0,
+        'fleet_size': 0
+    }
+
+    # ML integration - Only runs when DataAnalyst interacts
+    try:
+        import sys
+        import os
+        from django.conf import settings
+        
+        # Add ML directory to path
+        ml_path = os.path.join(settings.BASE_DIR, 'ML - Copy')
+        if ml_path not in sys.path:
+            sys.path.append(ml_path)
+        
+        # 1. Load dataset FIRST to ensure stats and dropdown are populated
+        from data_processing import load_data, GROUP_COL, TIME_COL, TARGET_COL
+        from ml import predict_truck_health_score, calculate_health_score
+        
+        data_file = os.path.join(ml_path, 'Train_Test_FleetData.xlsx')
+        df = load_data(path=data_file)
+        
+        # User specified IDs to show in the dashboard
+        USER_TRUCK_IDS = [
+            'Truck_0021X1', 'Truck_0051X1', 'Truck_0061X1', 'Truck_0081X1',
+            'Truck_0101X1', 'Truck_0111X1', 'Truck_0131X1', 'Truck_0141X1',
+            'Truck_0151X1', 'Truck_0681X1', 'Truck_0691X1', 'Truck_0701X1', 
+            'Truck_0711X1', 'Truck_0741X1', 'Truck_0751X1', 'Truck_0771X1', 
+            'Truck_0781X1', 'Truck_0791X1', 'Truck_0801X1'
+        ]
+        
+        # Filter dataframe and IDs to match the user's model/requirement
+        df = df[df[GROUP_COL].isin(USER_TRUCK_IDS)]
+        truck_ids = sorted(df[GROUP_COL].unique().tolist())
+        
+        # Update actual stats based on filtered data
+        stats = {
+            'total_services': df.shape[0],
+            'avg_health': round(df[TARGET_COL].mean(), 1) if not df.empty else 0,
+            'critical_trucks': df[df[TARGET_COL] < 40][GROUP_COL].nunique() if not df.empty else 0,
+            'fleet_size': len(truck_ids)
+        }
+
+        # 2. Try to handle prediction if requested
+        if request.method == 'POST':
+            truck_id_raw = request.POST.get('truck_id')
+            if truck_id_raw:
+                selected_truck = truck_id_raw
+                truck_df = df[df[GROUP_COL] == selected_truck].sort_values(TIME_COL)
+                
+                if not truck_df.empty:
+                    try:
+                        # Attempt ML prediction
+                        prediction = predict_truck_health_score(truck_df)
+                        if prediction is not None:
+                            prediction = round(float(prediction), 1)
+                    except Exception as ml_err:
+                        # Fallback to direct calculation if ML fails (e.g. tensorflow missing)
+                        print(f"ML Model Error: {ml_err}. Falling back to sensor calculation.")
+                        prediction = calculate_health_score(truck_df.iloc[-1])
+                        if prediction is not None:
+                            prediction = round(float(prediction), 1)
+                    
+                    # Update stats for selected truck
+                    stats['avg_health'] = round(truck_df[TARGET_COL].mean(), 1)
+                    stats['min_health'] = round(truck_df[TARGET_COL].min(), 1)
+                    stats['max_health'] = round(truck_df[TARGET_COL].max(), 1)
+                    stats['services_count'] = len(truck_df)
+                else:
+                    error_msg = f"No data found for Truck {selected_truck}"
+            
+    except Exception as e:
+        print(f"ML Dashboard Execution Error: {e}")
+        error_msg = f"System Error: {str(e)}"
+
+    return render(request, 'pages/analytics/data-dashboard.html', {
+        'user_data': user_data,
+        'truck_ids': truck_ids,
+        'prediction': prediction,
+        'selected_truck': selected_truck,
+        'stats': stats,
+        'error': error_msg
+    })
+
+
+def export_ml_certificate(request):
+    """
+    Generate and download a PDF health certificate for a vehicle.
+    Uses the existing certificate_generator logic.
+    """
+    user_data = _get_session_user(request)
+    if not user_data or user_data.get('role') != 'data-analyst':
+        return HttpResponseRedirect('/index.html')
+
+    truck_id = request.GET.get('truck_id')
+    health_score = request.GET.get('health_score')
+
+    if not truck_id or not health_score:
+        return HttpResponse("Missing truck_id or health_score parameters", status=400)
+
+    try:
+        import sys
+        import os
+        from django.conf import settings
+        from django.http import FileResponse
+        
+        # Add ML directory to path for imports
+        ml_path = os.path.join(settings.BASE_DIR, 'ML - Copy')
+        if ml_path not in sys.path:
+            sys.path.append(ml_path)
+            
+        from certificate_generator import generate_certificate
+        
+        # Generate the PDF
+        file_path = generate_certificate(str(truck_id), float(health_score))
+        
+        if os.path.exists(file_path):
+            # Open the file and return as a response
+            response = FileResponse(open(file_path, 'rb'), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Vehicle_Health_Certificate_{truck_id}.pdf"'
+            return response
+        else:
+            return HttpResponse("Failed to generate certificate file.", status=500)
+            
+    except Exception as e:
+        print(f"Certificate Export Error: {e}")
+        return HttpResponse(f"Error generating certificate: {str(e)}", status=500)
 
 
 @csrf_exempt
@@ -2545,8 +2989,7 @@ def services_list_view(request):
     """GET /api/services — returns the list of available services with icons/colors"""
     # Define services with metadata for the UI
     services = [
-        # Maintenance & Inspection
-        {'name': 'Inspection', 'icon': 'bi-search', 'color': 'text-secondary'},
+        # Maintenance & Services
         {'name': 'Oil Change & Filter', 'icon': 'bi-droplet-fill', 'color': 'text-warning'},
         {'name': 'Electrical System Check', 'icon': 'bi-lightning-fill', 'color': 'text-warning'},
         
@@ -2689,3 +3132,629 @@ def purchase_orders_api(request):
             return _json_error(str(e), 500)
             
     return _json_error('Method not allowed', 405)
+
+
+# ========================================================================
+#  BOOK CHECK VIEW
+# ========================================================================
+
+@csrf_exempt
+def book_check_view(request):
+    """POST /api/book-check — Client requests a vehicle check for 3000 EGP."""
+    if request.method != 'POST':
+        return _json_error('Method not allowed', 405)
+
+    user_data = _get_session_user(request)
+    if not user_data or user_data['role'] != 'client':
+        return _json_error('Forbidden: Clients only.', 403)
+
+    try:
+        data = json.loads(request.body)
+        vehicle_id = data.get('vehicle_id')
+        date_str   = data.get('date')
+        time_str   = data.get('time', '10:00')
+
+        if not vehicle_id:
+            return _json_error('Please select a vehicle.')
+        if not date_str:
+            return _json_error('Please select a date.')
+
+        # Verify vehicle belongs to this client
+        vehicle = Vehicle.objects.filter(vehicle_id=vehicle_id, user_id=user_data['user_id']).first()
+        if not vehicle:
+            return _json_error('Vehicle not found or does not belong to you.', 404)
+
+        # Combine date + time into a datetime
+        try:
+            start_dt = datetime.datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return _json_error('Invalid date or time format.')
+
+        CHECK_PRICE = 3000  # Fixed check price in EGP
+
+        # 1. Create Appointment with service_type = 'Check'
+        appointment = Appointment.objects.create(
+            user_id=user_data['user_id'],
+            vehicle=vehicle,
+            date_time=start_dt,
+            status='Scheduled',
+            service_type='Check',
+        )
+
+        # 2. Create Jobcard linked to the appointment (status = 'Pending Payment')
+        now = datetime.datetime.now()
+        jobcard = Jobcard.objects.create(
+            appointment=appointment,
+            vehicle=vehicle,
+            user_id=user_data['user_id'],
+            createdat=now,
+            updatedat=now,
+            status='Pending Payment',
+            totallaborcost=CHECK_PRICE,
+            totalpartscost=0,
+        )
+
+        # 3. Create Invoice for 3000 EGP
+        invoice_date = datetime.date.today()
+        due_date     = invoice_date + datetime.timedelta(days=7)
+
+        invoice = Invoice.objects.create(
+            user_id=user_data['user_id'],
+            invoicedate=invoice_date,
+            duedate=due_date,
+            jobcard=jobcard,
+            subtotallabor=CHECK_PRICE,
+            subtotalparts=0,
+            tax=0,
+            discount=0,
+            total=CHECK_PRICE,
+            status='Unpaid',
+        )
+
+        # Link invoice back to jobcard
+        jobcard.invoice = invoice
+        jobcard.save()
+
+        # 4. Send confirmation email using existing SMTP setup
+        client_email = user_data.get('email', '')
+        client_name  = user_data.get('name', 'Valued Client')
+        vehicle_label = f"{vehicle.year or ''} {vehicle.make} {vehicle.model} ({vehicle.platenumber})".strip()
+
+        # Generate a secure signed token for the direct Pay Now link in email
+        from django.core import signing
+        pay_token = signing.dumps(
+            {'invoice_id': invoice.invoice_id, 'user_id': user_data['user_id']},
+            salt='check-pay-email',
+        )
+
+        _send_check_confirmation_email(
+            client_email, client_name, vehicle_label,
+            date_str, time_str, invoice.invoice_id, CHECK_PRICE, pay_token
+        )
+
+        return _json_ok({
+            'message': 'Check request submitted successfully. An email confirmation has been sent.',
+            'invoice_id': invoice.invoice_id,
+            'amount': CHECK_PRICE,
+        })
+
+    except Exception as e:
+        print("DB Error (book_check_view):", e)
+        return _json_error('Database error: ' + str(e), 500)
+
+
+def _send_check_confirmation_email(target_email, client_name, vehicle_label, date_str, time_str, invoice_id, amount, pay_token=''):
+    """Send vehicle check request confirmation email via SMTP - Premium Dark Design."""
+    try:
+        system = settings.SYSTEM_NAME
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{system} <{settings.SMTP_USER}>"
+        msg['To']   = target_email
+        msg['Subject'] = f"Vehicle Check Confirmed — Invoice #{invoice_id} | {system}"
+
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle Check Confirmation</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <!-- Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f1a;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4338ca 100%);border-radius:20px 20px 0 0;padding:40px 40px 30px;text-align:center;">
+              <div style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:50%;width:72px;height:72px;line-height:72px;font-size:32px;margin-bottom:16px;">🚗</div>
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">{system}</h1>
+              <p style="margin:8px 0 0;color:#a5b4fc;font-size:14px;letter-spacing:2px;text-transform:uppercase;">Vehicle Check Confirmation</p>
+              <div style="width:60px;height:3px;background:linear-gradient(90deg,#818cf8,#c084fc);margin:20px auto 0;border-radius:2px;"></div>
+            </td>
+          </tr>
+
+          <!-- GREETING -->
+          <tr>
+            <td style="background:#1e1b4b;padding:24px 40px 0;">
+              <p style="margin:0;color:#e2e8f0;font-size:16px;">Hello <strong>{client_name}</strong> 👋</p>
+              <p style="margin:8px 0 0;color:#94a3b8;font-size:14px;line-height:1.6;">
+                Your <strong>Vehicle Check</strong> request has been successfully submitted and is awaiting your payment to be activated.
+              </p>
+            </td>
+          </tr>
+
+          <!-- DETAILS CARD -->
+          <tr>
+            <td style="background:#1e1b4b;padding:24px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0"
+                     style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border:1px solid rgba(129,140,248,0.3);border-radius:16px;overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                          <span style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Vehicle</span><br>
+                          <span style="color:#f1f5f9;font-size:15px;font-weight:600;margin-top:4px;display:block;">{vehicle_label}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                          <span style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Scheduled</span><br>
+                          <span style="color:#f1f5f9;font-size:15px;font-weight:600;margin-top:4px;display:block;">{date_str} at {time_str}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <span style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Amount Due</span><br>
+                          <span style="color:#818cf8;font-size:24px;font-weight:800;margin-top:4px;display:block;">EGP {amount:,}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- PAY BUTTON -->
+          <tr>
+            <td style="background:#1e1b4b;padding:0 40px 40px;text-align:center;">
+              <a href="http://127.0.0.1:8000/pay-check/{pay_token}/"
+                 style="display:inline-block;background:linear-gradient(135deg,#4338ca,#7c3aed);color:#ffffff;text-decoration:none;font-size:17px;font-weight:800;padding:18px 48px;border-radius:50px;box-shadow:0 8px 30px rgba(99,102,241,0.5);">
+                PAY NOW VIA CREDIT CARD
+              </a>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:#0f0f1a;border-radius:0 0 20px 20px;padding:30px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+              <p style="margin:0;color:#4a5568;font-size:12px;">Sent by {system}. Do not reply to this email.</p>
+              <p style="margin:8px 0 0;color:#374151;font-size:11px;">&copy; 2026 {system}. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>"""
+
+        text = (
+            f"Hello {client_name},\n\n"
+            f"Your Vehicle Check has been confirmed. Please pay via Credit Card to activate.\n\n"
+            f"Vehicle : {vehicle_label}\n"
+            f"Date    : {date_str} at {time_str}\n"
+            f"Amount  : EGP {amount:,}\n\n"
+            f"PAY NOW via Credit Card:\n"
+            f"http://127.0.0.1:8000/pay-check/{pay_token}/\n\n"
+            f"Best regards,\nThe {system} Team"
+        )
+
+        msg.attach(MIMEText(text, 'plain'))
+        msg.attach(MIMEText(html, 'html'))
+
+        server = smtplib.SMTP_SSL(settings.SMTP_SERVER, settings.SMTP_PORT)
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print(f"[book_check] Premium email sent to {target_email}")
+        return True
+    except Exception as e:
+        print(f"[book_check] Failed to send email: {e}")
+        return False
+
+
+def _send_service_completion_email(target_email, client_name, vehicle_label, appointment_id):
+    """Send vehicle service completion notification email via SMTP - Premium Dark Design."""
+    try:
+        system = settings.SYSTEM_NAME
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{system} <{settings.SMTP_USER}>"
+        msg['To']   = target_email
+        msg['Subject'] = f"Service Completed — Your {vehicle_label} is Ready! | {system}"
+
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Completed</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f1a;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#065f46 0%,#047857 50%,#059669 100%);border-radius:20px 20px 0 0;padding:40px 40px 30px;text-align:center;">
+              <div style="display:inline-block;background:rgba(255,255,255,0.12);border-radius:50%;width:72px;height:72px;line-height:72px;font-size:32px;margin-bottom:16px;">✨</div>
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">{system}</h1>
+              <p style="margin:8px 0 0;color:#a7f3d0;font-size:14px;letter-spacing:2px;text-transform:uppercase;">Service Successfully Completed</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#1e1b4b;padding:32px 40px;">
+              <p style="margin:0;color:#e2e8f0;font-size:18px;">Great news, <strong>{client_name}</strong>!</p>
+              <p style="margin:16px 0 0;color:#94a3b8;font-size:15px;line-height:1.7;">
+                We are pleased to inform you that the maintenance for your <strong>{vehicle_label}</strong> has been completed. 
+                Our team has performed all necessary checks and services to ensure your vehicle is in top condition.
+              </p>
+              <div style="background:rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius:12px; padding:20px; margin-top:24px;">
+                <p style="margin:0; color:#10b981; font-weight:700; font-size:14px; text-transform:uppercase;">Vehicle Status: READY FOR PICKUP</p>
+                <p style="margin:8px 0 0; color:#94a3b8; font-size:13px;">You can now visit the workshop to collect your vehicle at your earliest convenience.</p>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#1e1b4b;padding:0 40px 40px;text-align:center;">
+              <a href="http://127.0.0.1:8000/pages/client/service-history.html"
+                 style="display:inline-block;background:linear-gradient(135deg,#059669,#10b981);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 32px;border-radius:50px;box-shadow:0 8px 20px rgba(16,185,129,0.3);">
+                VIEW SERVICE DETAILS
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#0f0f1a;border-radius:0 0 20px 20px;padding:30px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+              <p style="margin:0;color:#4a5568;font-size:12px;">Thank you for choosing {system} for your automotive needs.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+
+        text = (
+            f"Hello {client_name},\n\n"
+            f"Your vehicle ({vehicle_label}) is ready! Service has been successfully completed.\n\n"
+            f"You can view the details here:\n"
+            f"http://127.0.0.1:8000/pages/client/service-history.html\n\n"
+            f"Best regards,\nThe {system} Team"
+        )
+
+        msg.attach(MIMEText(text, 'plain'))
+        msg.attach(MIMEText(html, 'html'))
+
+        server = smtplib.SMTP_SSL(settings.SMTP_SERVER, settings.SMTP_PORT)
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print(f"[service_complete] Email sent to {target_email} for vehicle {vehicle_label}")
+        return True
+    except Exception as e:
+        print(f"[service_complete] Failed to send email: {e}")
+        return False
+
+
+# ========================================================================
+#  VEHICLE CHECK STATUS VIEW
+# ========================================================================
+
+@require_GET
+def vehicle_check_status_view(request):
+    """GET /api/vehicle-check-status?vehicle_id=X
+    Returns whether the given vehicle has a paid Check invoice,
+    meaning the client is allowed to book a regular service for it.
+    """
+    user_data = _get_session_user(request)
+    if not user_data:
+        return _json_error('Unauthorized', 401)
+
+    vehicle_id = request.GET.get('vehicle_id')
+    if not vehicle_id:
+        return _json_error('vehicle_id is required')
+
+    try:
+        # Logic: Allow booking if there is a PAID check and it hasn't been "consumed" by a newer service
+        # We check if the latest Paid Check is newer or equal to the latest Service
+        latest_paid_check = Jobcard.objects.filter(
+            vehicle_id=vehicle_id,
+            user_id=user_data['user_id'],
+            appointment__service_type__iexact='check',
+            invoice__status='Paid'
+        ).order_by('-appointment_id').first()
+
+        latest_service = Appointment.objects.filter(
+            vehicle_id=vehicle_id,
+            user_id=user_data['user_id']
+        ).exclude(service_type__iexact='check').exclude(status='Cancelled').order_by('-appointment_id').first()
+
+        can_book = False
+        if latest_paid_check:
+            if not latest_service:
+                can_book = True # No services done yet, but has a check
+            elif latest_paid_check.appointment_id >= latest_service.appointment_id:
+                can_book = True # Paid check is more recent than (or the same as) the last service
+
+        if can_book:
+            return JsonResponse({
+                'has_paid_check': True,
+                'message': 'Vehicle eligible for service booking.'
+            })
+        else:
+            # Pending unpaid check = Jobcard with status='Pending Payment' linked to 'check' appointment
+            unpaid_check = Jobcard.objects.filter(
+                vehicle_id=vehicle_id,
+                user_id=user_data['user_id'],
+                appointment__service_type__iexact='check',
+                status='Pending Payment',
+                invoice__status='Unpaid',
+            ).select_related('invoice').first()
+
+            if unpaid_check:
+                return JsonResponse({
+                    'has_paid_check': False,
+                    'has_pending_check': True,
+                    'invoice_id': unpaid_check.invoice_id,
+                    'message': 'You have a pending Check invoice. Please pay it first before booking a service.',
+                })
+            else:
+                return JsonResponse({
+                    'has_paid_check': False,
+                    'has_pending_check': False,
+                    'message': 'No vehicle check found. Please book and pay for a vehicle check before booking a service.',
+                })
+    except Exception as e:
+        print("DB Error (vehicle_check_status):", e)
+        return _json_error('Database error: ' + str(e), 500)
+
+
+@require_GET
+def client_check_status_view(request):
+    """GET /api/client-check-status
+    Returns whether this client has ANY paid Check inspection across all vehicles.
+    Used to gate access to the Book Service page.
+    """
+    user_data = _get_session_user(request)
+    if not user_data:
+        return _json_error('Unauthorized', 401)
+
+    try:
+        uid = user_data['user_id']
+
+        # Has any paid check? (Paid invoice linked to a 'check' appointment)
+        paid_check = Jobcard.objects.filter(
+            user_id=uid,
+            appointment__service_type__iexact='check',
+            invoice__status='Paid',
+        ).first()
+
+        if paid_check:
+            return JsonResponse({'has_paid_check': True})
+
+        # Has any pending (not yet paid) check?
+        pending_check = Jobcard.objects.filter(
+            user_id=uid,
+            appointment__service_type__iexact='check',
+            status='Pending Payment',
+        ).first()
+
+        if pending_check:
+            return JsonResponse({
+                'has_paid_check': False,
+                'has_pending_check': True,
+                'invoice_id': pending_check.invoice_id,
+            })
+
+        return JsonResponse({'has_paid_check': False, 'has_pending_check': False})
+
+    except Exception as e:
+        print("DB Error (client_check_status):", e)
+        return _json_error('Database error: ' + str(e), 500)
+
+
+# ========================================================================
+#  DIRECT PAY-CHECK PAGE (from email link — no login required)
+# ========================================================================
+
+def pay_check_page_view(request, token):
+    """GET /pay-check/<token>/ — renders the direct payment page."""
+    from django.core import signing
+    from django.shortcuts import render as django_render
+
+    error = None
+    invoice = None
+    try:
+        payload = signing.loads(token, salt='check-pay-email', max_age=7 * 24 * 3600)
+        invoice_id = payload['invoice_id']
+
+        # We only use 'Unpaid' status now
+        invoice = Invoice.objects.filter(
+            invoice_id=invoice_id,
+            status='Unpaid',
+        ).select_related('jobcard__appointment').first()
+
+        if invoice:
+            # Make sure it's actually a Check type invoice
+            jc = invoice.jobcard
+            if not jc or not jc.appointment or (jc.appointment.service_type or '').lower() != 'check':
+                invoice = None
+                error = 'This is not a valid vehicle check invoice.'
+        else:
+            # Check if already paid
+            paid_inv = Invoice.objects.filter(invoice_id=invoice_id, status='Paid').first()
+            if paid_inv:
+                error = 'This invoice has already been paid. Thank you!'
+            else:
+                error = 'Invoice not found or link is invalid.'
+
+    except signing.SignatureExpired:
+        error = 'This payment link has expired (7-day limit). Please log in to your account to pay.'
+    except signing.BadSignature:
+        error = 'Invalid or tampered payment link.'
+
+    return django_render(request, 'pages/public/pay-check.html', {
+        'token': token,
+        'invoice': invoice,
+        'error': error,
+    })
+
+
+@csrf_exempt
+def pay_check_api_view(request, token):
+    """POST /pay-check/<token>/process — processes the check payment from email link."""
+    if request.method != 'POST':
+        return _json_error('Method not allowed', 405)
+
+    from django.core import signing
+
+    try:
+        payload = signing.loads(token, salt='check-pay-email', max_age=7 * 24 * 3600)
+    except signing.SignatureExpired:
+        return _json_error('Payment link expired. Please log in to pay.', 410)
+    except signing.BadSignature:
+        return _json_error('Invalid payment link.', 400)
+
+    try:
+        data = json.loads(request.body)
+        method = data.get('method', 'CreditCard')
+        if method not in VALID_PAYMENT_METHODS:
+            method = 'CreditCard'
+
+        invoice_id = payload['invoice_id']
+        user_id    = payload['user_id']
+
+        # We only use 'Unpaid' status
+        invoice = Invoice.objects.filter(
+            invoice_id=invoice_id,
+            status='Unpaid',
+        ).select_related('jobcard__appointment').first()
+
+        if not invoice:
+            return _json_error('Invoice already paid or not found.', 404)
+
+        # Verify it's actually a check invoice
+        jc = invoice.jobcard
+        if not jc or not jc.appointment or (jc.appointment.service_type or '').lower() != 'check':
+            return _json_error('This is not a valid vehicle check invoice.', 400)
+
+        # Record payment
+        Payment.objects.create(
+            user_id=user_id,
+            invoice=invoice,
+            paymentdate=datetime.date.today(),
+            amount=invoice.total,
+            method=method,
+        )
+        invoice.status = 'Paid'
+        invoice.save()
+
+        # Activate the Jobcard
+        Jobcard.objects.filter(invoice=invoice, status='Pending Payment').update(status='Scheduled')
+        if jc.status == 'Pending Payment':
+            jc.status = 'Scheduled'
+            jc.save()
+
+        return _json_ok({'message': 'Payment successful! Your vehicle check is now scheduled.'})
+
+    except Exception as e:
+        print("DB Error (pay_check_api):", e)
+        return _json_error('Database error: ' + str(e), 500)
+
+
+def vehicle_track_api_view(request, vehicle_id):
+    """GET /api/vehicle-track/<vehicle_id> - Strictly based on Appointment Status."""
+    user_data = _get_session_user(request)
+    if not user_data:
+        return _json_error('Unauthorized', 401)
+
+    try:
+        vehicle = Vehicle.objects.filter(vehicle_id=vehicle_id).first()
+        if not vehicle:
+            return _json_error('Vehicle not found', 404)
+
+        # 1. Find the latest active appointment for this vehicle (exclude Cancelled)
+        app = Appointment.objects.filter(vehicle=vehicle).exclude(status='Cancelled').order_by('-appointment_id').first()
+        if not app:
+            return _json_error('No service history found', 404)
+
+        # 2. Check for linked Jobcard (if any)
+        jc = Jobcard.objects.filter(appointment=app).first()
+        has_tech = jc and jc.technician_id is not None
+
+        # 3. Use Jobcard status if it exists and is not empty, else Appointment status
+        status = jc.status if (jc and jc.status) else app.status
+        
+        # 4. Map to 5 steps
+        step = 1
+        label = "Booking Received"
+        progress = 20
+
+        if status == 'Scheduled':
+            step = 1
+            label = "Booking Received"
+            progress = 20
+        elif status == 'Confirmed':
+            if has_tech:
+                step = 3
+                label = "Technician Assigned"
+                progress = 60
+            else:
+                step = 2
+                label = "Appointment Confirmed"
+                progress = 40
+        elif status == 'In Progress':
+            step = 4
+            label = "Service Underway"
+            progress = 80
+        elif status in ['Completed', 'Closed']:
+            step = 5
+            label = "Service Completed"
+            progress = 100
+
+        tech_name = jc.technician.firstname if (has_tech and jc.technician) else 'Assigning...'
+
+        return JsonResponse({
+            'appointment_id': app.appointment_id,
+            'status': status,
+            'progress': progress,
+            'step': step,
+            'label': label,
+            'technician': tech_name,
+            'last_update': app.date_time.strftime('%Y-%m-%d %H:%M') if app.date_time else '--',
+            'vehicle_name': f"{vehicle.make} {vehicle.model}"
+        })
+
+    except Exception as e:
+        print('Track Error:', e)
+        return _json_error(str(e), 500)
+
+    except Exception as e:
+        print('Track Error:', e)
+        return _json_error(str(e), 500)

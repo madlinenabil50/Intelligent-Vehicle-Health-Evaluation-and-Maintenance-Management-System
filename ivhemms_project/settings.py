@@ -138,8 +138,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ========== IVHEMMS Custom Configuration ==========
 
 # Gemini AI Configuration
-GEMINI_API_KEY = "AIzaSyAUj2j8n9I_ahPie5NRmwoIfQM82sWIYog"
-
+GEMINI_API_KEY = "AIzaSyB4jihguOctU4DioJtQ50SO-wrqaEUqTjw"
 # SMTP Email Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465

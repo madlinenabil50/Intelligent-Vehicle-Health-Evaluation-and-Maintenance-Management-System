@@ -7,8 +7,8 @@
     <title>IVHEMMS — Service Manager Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -155,8 +155,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js?v=7"></script>
-    <script src="../../assets/js/topbar-helper.js"></script>
+    <script src="../../../assets/js/main.js?v=7"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
     <script>
         const userId = "{{ user_data.user_id }}";
         const userRole = "{{ user_data.role }}";
@@ -186,10 +186,11 @@
                 if(rW.ok) { const wData = await rW.json(); dbWo = wData.work_orders || wData.data || wData; }
                 if(rP.ok) { const pData = await rP.json(); dbParts = pData.data || pData; dbPartsMeta = pData; }
                 
-                // Techs logic from WO
-                const techsInWo = new Set(dbWo.map(w => w.Technician_ID).filter(Boolean));
-                document.getElementById('kpiTechs').textContent = techsInWo.size || 0;
-                document.getElementById('kpiTechsTrend').innerHTML = `<i class="bi bi-people"></i> Active today`;
+                // Technicians on Duty = techs assigned to an active work order
+                const activeWos = dbWo.filter(w => ['In Progress', 'Confirmed', 'Scheduled'].includes(w.Status));
+                const techsOnDuty = new Set(activeWos.map(w => w.Technician_ID).filter(Boolean));
+                document.getElementById('kpiTechs').textContent = techsOnDuty.size || 0;
+                document.getElementById('kpiTechsTrend').innerHTML = `<i class="bi bi-person-check"></i> Assigned to active WOs`;
                 
                 renderDash();
             } catch (e) {
@@ -201,38 +202,41 @@
         let dbPartsMeta = {}; // To store pending counts from paginated response
 
         const badgeClass = (s) => {
-            const map = { 'Pending': 'warning text-dark', 'In Progress': 'info text-dark', 'Completed': 'success', 'Confirmed': 'primary', 'Canceled': 'danger' };
+            const map = {
+                'Scheduled':   'secondary',
+                'Confirmed':   'primary',
+                'Pending':     'warning text-dark',
+                'In Progress': 'info text-dark',
+                'Completed':   'success',
+                'Cancelled':   'danger',
+                'Canceled':    'danger'
+            };
             return map[s] || 'secondary';
         };
 
+        function showInlineAlert(id, msg) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = `<div class="alert alert-success alert-sm py-1 px-2 small mb-2">${msg}</div>`;
+            setTimeout(() => { el.innerHTML = ''; }, 2500);
+        }
+
         function renderDash() {
-            // 1. Appts KPI
-            const todayStr = new Date().toISOString().split('T')[0];
-            let displayAppts = dbAppts.filter(a => (a.StartTime||'').startsWith(todayStr));
-            let isToday = true;
-            
-            // If no appts today, just show the newest/upcoming ones so the dash isn't empty
-            if(displayAppts.length === 0) {
-                displayAppts = [...dbAppts].sort((a,b) => new Date(b.StartTime) - new Date(a.StartTime)).slice(0, 5);
-                isToday = false;
-            }
+            // 1. Appts KPI — use LOCAL date not UTC to avoid timezone offset bug
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            const displayAppts = dbAppts.filter(a => (a.date_time||'').startsWith(todayStr));
 
             const confirmed = displayAppts.filter(a => a.Status === 'Confirmed').length;
             document.getElementById('kpiAppts').textContent = displayAppts.length;
-            
-            if(isToday) {
-                document.getElementById('kpiApptsTrend').innerHTML = `<i class="bi bi-check2"></i> ${confirmed} Confirmed Today`;
-            } else {
-                document.getElementById('kpiApptsTrend').innerHTML = `<i class="bi bi-calendar"></i> Showing Recent`;
-                document.querySelector('.dashboard-title').parentElement.nextElementSibling; // Just to keep code same
-            }
+            document.getElementById('kpiApptsTrend').innerHTML = `<i class="bi bi-check2"></i> ${confirmed} Confirmed Today`;
 
             if(!displayAppts.length) {
-                document.getElementById('apptsQueue').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No appointments found.</td></tr>';
+                document.getElementById('apptsQueue').innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No appointments scheduled for today.</td></tr>';
             } else {
                 document.getElementById('apptsQueue').innerHTML = displayAppts.slice(0, 5).map(a => {
                     const vInfo = a.Make ? `${a.Make} ${a.Model||''}` : 'No vehicle info';
-                    const sTimeRaw = a.StartTime ? a.StartTime.replace('Z', '') : null;
+                    const sTimeRaw = a.date_time ? a.date_time.replace('Z', '') : null;
                     const sTime = sTimeRaw ? new Date(sTimeRaw).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown Time';
                     
                     return `
@@ -250,10 +254,13 @@
                 }).join('');
             }
 
-            // 2. WO KPI
-            const openWo = dbWo.filter(w => w.Status === 'Pending');
+            // 2. WO KPI — count all active (not yet completed/cancelled)
+            const openWo = dbWo.filter(w => ['Scheduled','Confirmed','In Progress'].includes(w.Status));
             document.getElementById('kpiWO').textContent = openWo.length;
-            document.getElementById('kpiWOTrend').innerHTML = openWo.length ? `<i class="bi bi-tools"></i> Active queue` : `<i class="bi bi-check-all"></i> All clear`;
+            const inProg = dbWo.filter(w => w.Status === 'In Progress').length;
+            document.getElementById('kpiWOTrend').innerHTML = openWo.length
+                ? `<i class="bi bi-tools"></i> ${inProg} In Progress, ${openWo.length - inProg} Pending`
+                : `<i class="bi bi-check-all"></i> All clear`;
 
             // 3. Parts KPI
             const pendingCount = dbPartsMeta.pending_count ?? dbParts.filter(p => p.Status === 'Pending').length;

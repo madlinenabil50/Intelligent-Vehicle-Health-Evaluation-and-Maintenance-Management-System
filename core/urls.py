@@ -67,7 +67,22 @@ urlpatterns = [
 
     # Services
     path('api/services', views.services_list_view, name='services_list'),
+    path('api/vehicle-track/<int:vehicle_id>', views.vehicle_track_api_view, name='vehicle_track'),
+
     # Purchase Orders
     path('api/supplier-parts', views.supplier_parts_api, name='supplier_parts'),
     path('api/purchase-orders', views.purchase_orders_api, name='purchase_orders'),
+
+    # Book Check
+    path('api/book-check', views.book_check_view, name='book_check'),
+    path('api/vehicle-check-status', views.vehicle_check_status_view, name='vehicle_check_status'),
+    path('api/client-check-status', views.client_check_status_view, name='client_check_status'),
+
+    # ML Dashboard
+    path('ml-dashboard', views.ml_dashboard, name='ml_dashboard'),
+    path('api/export-certificate', views.export_ml_certificate, name='export_certificate'),
+
+    # Direct Pay from Email (no login required)
+    path('pay-check/<str:token>/', views.pay_check_page_view, name='pay_check_page'),
+    path('pay-check/<str:token>/process', views.pay_check_api_view, name='pay_check_api'),
 ]

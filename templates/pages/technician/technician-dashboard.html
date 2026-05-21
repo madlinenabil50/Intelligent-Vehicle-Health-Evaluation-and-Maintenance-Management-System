@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,8 @@
     <title>IVHEMMS — Technician Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -40,8 +40,8 @@
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile"
                         data-bs-toggle="dropdown">
-                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=Technician&background=3a86ff&color=fff" alt="">
-                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName">{{ user_data.fullname }}</span>
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName"></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item text-danger logout-link" href="#"><i
@@ -55,7 +55,6 @@
                 <div>
                     <span class="dashboard-breadcrumbs">Technician Portal / Daily Overview</span>
                     <h1 class="dashboard-title">Welcome Back, <span id="welcomeName">{{ user_data.name }}</span></h1>
-                    <p class="text-muted small mt-1" id="dashSubtitle">Loading your work queue...</p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="./work-orders.html" class="btn btn-primary btn-sm"><i class="bi bi-card-list me-1"></i> My Queue</a>
@@ -172,7 +171,8 @@
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js?v=7"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
+    <script src="../../../assets/js/main.js?v=7"></script>
     <script>
         const userId = "{{ user_data.user_id }}";
         const userRole = "{{ user_data.role }}";
@@ -229,12 +229,6 @@
                 document.getElementById('kpiInProgress').textContent = inProgress;
                 document.getElementById('kpiCompleted').textContent = completed;
                 document.getElementById('kpiHours').textContent = totalHours.toFixed(1) + 'h';
-                document.getElementById('dashSubtitle').textContent =
-                    `You have ${inProgress} in-progress and ${orders.filter(w => w.Status === 'Pending').length} pending orders.`;
-
-                // ── Avatar Update Only ───────────────────────────
-                const fullNameStr = ("{{ user_data.firstname }} {{ user_data.lastname }}").trim() || "{{ user_data.fullname }}";
-                document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullNameStr)}&background=6366f1&color=fff`;
 
                 // ── Work Orders Table ─────────────────────────────
                 const tbody = document.getElementById('dashWOTable');

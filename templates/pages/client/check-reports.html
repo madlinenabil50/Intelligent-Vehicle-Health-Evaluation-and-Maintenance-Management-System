@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IVHEMMS — My Check Reports</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
+    <style>
+        .report-card {
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            border-radius: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+        }
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+        .score-excellent { background: linear-gradient(135deg, #10b981, #059669); }
+        .score-good { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .score-fair { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .score-poor { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    </style>
+</head>
+
+<body class="vms-app">
+    <nav class="sidebar">
+        <a href="./client-dashboard.html" class="brand"><i class="bi bi-car-front-fill" style="color:#818cf8;"></i>
+            IVHEMMS</a>
+        <div class="sidebar-heading">My Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./client-dashboard.html"><i class="bi bi-house"></i> Dashboard</a></li>
+            <li><a href="./vehicle-list.html"><i class="bi bi-car-front"></i> My Vehicles</a></li>
+        </ul>
+        <div class="sidebar-heading">Services</div>
+        <ul class="sidebar-menu">
+            <li><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./book-check.html"><i class="bi bi-search"></i> Book Check</a></li>
+            <li><a href="./check-reports.html"><i class="bi bi-file-earmark-medical"></i> My Check Reports</a></li>
+            <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
+            <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
+            <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
+        </ul>
+        <div class="sidebar-heading">Account</div>
+        <ul class="sidebar-menu">
+            <li><a href="./profile.html"><i class="bi bi-person-circle"></i> My Profile</a></li>
+            <li><a href="#" class="logout-link text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button id="sidebarToggle" class="btn btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <h5 class="mb-0 fw-bold">My Check Reports</h5>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button id="themeSwitch" class="btn btn-outline-secondary rounded-circle" style="width:38px;height:38px;padding:0;"><i class="bi bi-moon-stars"></i></button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle user-profile" data-bs-toggle="dropdown">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=4361ee&color=fff" alt="">
+                        <span class="d-none d-md-inline fw-semibold topbar-username" id="topbarName"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                        <li><a class="dropdown-item" href="./profile.html"><i class="bi bi-person me-2 text-primary"></i> Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger logout-link" href="javascript:void(0)"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+        <div class="container-fluid p-4 fade-in">
+            <div class="dashboard-header mb-4">
+                <div>
+                    <span class="dashboard-breadcrumbs">Client / My Check Reports</span>
+                    <h1 class="dashboard-title">Inspection Results</h1>
+                </div>
+            </div>
+
+            <div id="loadingIndicator" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-3">Loading your inspection reports...</p>
+            </div>
+
+            <div id="noReports" class="text-center py-5 d-none">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <h5 class="mt-3">No Inspection Reports Found</h5>
+                <p class="text-muted">You haven't requested any vehicle checks yet, or the technician hasn't submitted the report.</p>
+            </div>
+
+            <div class="row g-4" id="reportsContainer">
+                <!-- Reports will be injected here -->
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-4 px-2 d-none" id="paginationContainer">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" id="prevPageBtn">
+                            <a class="page-link" href="#" onclick="changePage(-1)"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item disabled"><span class="page-link" id="pageNumber">1</span></li>
+                        <li class="page-item" id="nextPageBtn">
+                            <a class="page-link" href="#" onclick="changePage(1)"><i class="bi bi-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </main>
+
+    <!-- Report Details Modal -->
+    <div class="modal fade" id="reportDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalVehicleName">Vehicle Inspection</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded-3" style="background: rgba(67, 97, 238, 0.05); border: 1px solid rgba(67, 97, 238, 0.2);">
+                        <div>
+                            <span class="text-muted small text-uppercase">Inspection Date</span>
+                            <div class="fw-bold fs-5" id="modalDate"></div>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-muted small text-uppercase">Overall Health</span>
+                            <div class="fw-bold fs-5" id="modalScore" style="color: #4361ee;"></div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-file-text me-2"></i>Technician Notes & Results</h6>
+                    <div class="p-3 bg-light rounded-3 mb-4" id="modalResults" style="white-space: pre-wrap; font-size: 14px; background: var(--input-bg) !important;"></div>
+
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-activity me-2"></i>Diagnostic Data</h6>
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover mb-0" id="diagnosticTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Status / Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Diagnostic items -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                    <a href="./booking.html" class="btn btn-primary rounded-pill px-4">Book Service</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/main.js"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let allReports = [];
+
+        async function fetchReports() {
+            document.getElementById('loadingIndicator').classList.remove('d-none');
+            document.getElementById('reportsContainer').innerHTML = '';
+            document.getElementById('noReports').classList.add('d-none');
+            document.getElementById('paginationContainer').classList.add('d-none');
+
+            try {
+                const res = await fetch(`/api/inspections?page=${currentPage}`);
+                if (res.ok) {
+                    const result = await res.json();
+                    allReports = result.data || [];
+                    totalPages = result.total_pages || 1;
+                    
+                    document.getElementById('loadingIndicator').classList.add('d-none');
+
+                    if (allReports.length === 0) {
+                        document.getElementById('noReports').classList.remove('d-none');
+                    } else {
+                        renderReports(allReports);
+                        
+                        if (totalPages > 1) {
+                            document.getElementById('paginationContainer').classList.remove('d-none');
+                            document.getElementById('pageNumber').textContent = currentPage;
+                            document.getElementById('prevPageBtn').classList.toggle('disabled', currentPage === 1);
+                            document.getElementById('nextPageBtn').classList.toggle('disabled', currentPage === totalPages);
+                        }
+                    }
+                } else {
+                    throw new Error('Failed to fetch');
+                }
+            } catch (err) {
+                console.error("Error fetching reports:", err);
+                document.getElementById('loadingIndicator').innerHTML = '<div class="alert alert-danger">Error loading reports. Please try again.</div>';
+            }
+        }
+
+        function getScoreClass(score) {
+            if (!score) return 'score-fair';
+            if (score >= 80) return 'score-excellent';
+            if (score >= 60) return 'score-good';
+            if (score >= 40) return 'score-fair';
+            return 'score-poor';
+        }
+
+        function renderReports(reports) {
+            const container = document.getElementById('reportsContainer');
+            container.innerHTML = reports.map((r, index) => {
+                const score = r.HealthScore || 0;
+                const scoreClass = getScoreClass(score);
+                const dateStr = r.Date ? new Date(r.Date).toLocaleDateString() : 'N/A';
+                
+                return `
+                    <div class="col-md-6 col-lg-4 fade-in">
+                        <div class="report-card p-4 h-100 d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1">${r.VehicleName}</h5>
+                                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i> ${dateStr}</span>
+                                </div>
+                                <div class="score-circle ${scoreClass} shadow-sm">
+                                    ${score}%
+                                </div>
+                            </div>
+                            <div class="mb-3 flex-grow-1">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary mb-2 border">${r.HealthCategory || 'Uncategorized'}</span>
+                                <p class="text-muted small mb-0" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                    ${r.Results || 'No notes provided by technician.'}
+                                </p>
+                            </div>
+                            <button class="btn btn-outline-primary w-100 rounded-pill mt-auto view-report-btn" data-index="${index}">
+                                <i class="bi bi-eye me-2"></i> View Full Report
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Attach event listeners
+            document.querySelectorAll('.view-report-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = e.currentTarget.getAttribute('data-index');
+                    showReportDetails(allReports[idx]);
+                });
+            });
+        }
+
+        function showReportDetails(report) {
+            document.getElementById('modalVehicleName').textContent = report.VehicleName;
+            document.getElementById('modalDate').textContent = report.Date ? new Date(report.Date).toLocaleDateString() : 'N/A';
+            document.getElementById('modalScore').textContent = `${report.HealthScore || 0}% (${report.HealthCategory || 'N/A'})`;
+            document.getElementById('modalResults').textContent = report.Results || 'No additional results/notes provided.';
+            
+            const tbody = document.querySelector('#diagnosticTable tbody');
+            tbody.innerHTML = '';
+            
+            const PARAM_MAPPING = {
+                "td1": "Engine Performance", "td2": "Road Handling", "td3": "Braking System", "td4": "Steering & Alignment",
+                "td5": "Transmission Shifting", "td6": "Suspension", "td7": "Road Noise", "td8": "Tire Balance",
+                "ex1": "Paint Finish", "ex2": "Body Damage", "ex3": "Rust Analysis", "ex4": "Windshield & Glass",
+                "ex5": "Headlights & Signals", "ex6": "Mirrors & Bumpers", "ex7": "Underbody", "el1": "Interior Lighting",
+                "el2": "Battery Health", "el3": "Instrument Gauges", "el4": "AC System", "el5": "Heater Operation", "el6": "Stereo System",
+                "el7": "Wiper System", "el8": "Power Seats", "el9": "OBD2 Code Scan", "uh1": "Fluid Levels",
+                "uh2": "Hoses & Belts", "uh3": "Air Filter", "uh4": "Radiator", "uh5": "Oil Leaks",
+                "uh6": "Engine Noise", "in1": "Upholstery", "in2": "Interior Trim", "in3": "Windows Operation",
+                "in4": "Seats Operation", "in5": "Carpets & Mats", "in6": "Instrument Panel", "in7": "Headliner",
+                "in8": "Seatbelts", "bb1": "Wheels & Tires", "bb2": "Trunk & Spare", "bb3": "Exhaust System",
+                "bb4": "Warning Lights", "bb5": "Owners Manual", "results": "Ancillary Findings"
+            };
+
+            const diagData = report.DiagnosticData;
+            if (diagData && Object.keys(diagData).length > 0) {
+                for (const [key, val] of Object.entries(diagData)) {
+                    // Prettify the key
+                    const lowerKey = key.toLowerCase();
+                    const prettyKey = PARAM_MAPPING[lowerKey] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    
+                    let badgeClass = 'bg-secondary';
+                    let valText = val;
+                    
+                    if (typeof val === 'boolean') {
+                        valText = val ? 'Pass' : 'Fail';
+                        badgeClass = val ? 'bg-success' : 'bg-danger';
+                        valText = `<span class="badge ${badgeClass} px-3 py-2 rounded-pill shadow-sm" style="font-size:13px; letter-spacing:0.5px;">${valText}</span>`;
+                    } else if (typeof val === 'string') {
+                        const vLow = val.toLowerCase();
+                        if (vLow === 'ok' || vLow === 'good' || vLow === 'pass') {
+                            badgeClass = 'bg-success';
+                        } else if (vLow === 'bad' || vLow === 'replace' || vLow === 'fail' || vLow === 'poor') {
+                            badgeClass = 'bg-danger';
+                        } else if (vLow === 'warning' || vLow === 'fair') {
+                            badgeClass = 'bg-warning text-dark';
+                        }
+                        valText = `<span class="badge ${badgeClass} px-3 py-2 rounded-pill shadow-sm" style="font-size:13px; letter-spacing:0.5px; font-weight:700;">${val.toUpperCase()}</span>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                            <td class="fw-bold opacity-75" style="padding: 16px 20px; font-size: 14px; letter-spacing: 0.5px; border:none;">
+                                <i class="bi bi-record-circle text-primary me-2" style="font-size: 10px;"></i>
+                                ${prettyKey}
+                            </td>
+                            <td class="text-end" style="padding: 16px 20px; border:none;">${valText}</td>
+                        </tr>
+                    `;
+                }
+            } else {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-4">No diagnostic parameters recorded.</td></tr>';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('reportDetailsModal'));
+            modal.show();
+        }
+
+        function changePage(delta) {
+            if (currentPage + delta >= 1 && currentPage + delta <= totalPages) {
+                currentPage += delta;
+                fetchReports();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchReports();
+        });
+    </script>
+</body>
+
+</html>

@@ -281,7 +281,7 @@
     function wireTheme() {
         const k = 'ai_theme';
 
-        const saved = localStorage.getItem(k) || 'light';
+        const saved = localStorage.getItem(k) || 'dark';
         document.documentElement.setAttribute('data-theme', saved);
 
         const btn = document.getElementById('themeSwitch');
@@ -340,12 +340,11 @@
         window.updateTopbarAvatar();
     }
     function triggerLogoutAnimation() {
-
         if (!document.getElementById('logout-anim-css')) {
             const link = document.createElement('link');
             link.id = 'logout-anim-css';
             link.rel = 'stylesheet';
-            link.href = rootPrefix() + 'assets/css/logout-animation.css';
+            link.href = '/assets/css/logout-animation.css';
             document.head.appendChild(link);
         }
 
@@ -378,14 +377,15 @@
             const s = state();
             s.currentUser = null;
             saveState(s);
+            sessionStorage.clear(); // Clear any cached state like bookingWizardState
 
 
             fetch('/api/logout', { method: 'POST' }).finally(() => {
-
                 window.location.href = '/';
             });
         }, 1500);
     }
+    window.triggerLogoutAnimation = triggerLogoutAnimation;
 
     function populateTopbarUser() {
         const s = state();
@@ -750,7 +750,7 @@
                 'In Progress': 'in-progress',
                 'Completed': 'completed',
                 'Pending': 'pending',
-                'Closed': 'completed'
+                'Cancelled': 'cancelled'
             };
             return map[st] || 'pending';
         }
@@ -877,7 +877,7 @@
                   <tr>
                     <td><span class="fw-bold">#${wo.JobCard_ID}</span></td>
                     <td>${wo.Make} ${wo.Model}<br><small class="text-muted">${wo.PlateNumber}</small></td>
-                    <td>${wo.service_type || wo.ReportedIssues || '-'}</td>
+                    <td>${wo.service_type || '-'}</td>
                     <td>${statusMarkup}</td>
                     <td>${actionsMarkup}</td>
                   </tr>
@@ -1038,7 +1038,7 @@
             }
 
             tbody.innerHTML = apps.map(a => {
-                const dateObj = new Date(a.StartTime);
+                const dateObj = new Date(a.date_time);
                 const dateStr = dateObj.toLocaleDateString() + ' Ã‚Â· ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 let statusCls = 'pending';

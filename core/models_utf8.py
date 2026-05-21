@@ -1,4 +1,4 @@
-﻿# This is an auto-generated Django model module.
+# This is an auto-generated Django model module.
 # You'll have to do the following manually to clean this up:
 #   * Rearrange models' order
 #   * Make sure each model has one field with primary_key=True
@@ -178,8 +178,6 @@ class Technician(models.Model):
     user = models.OneToOneField('Users', models.DO_NOTHING, db_column='User_ID', primary_key=True)  # Field name made lowercase.
     currentstatus = models.CharField(db_column='CurrentStatus', max_length=50, blank=True, null=True)  # Field name made lowercase.
     hiredate = models.DateField(db_column='HireDate', blank=True, null=True)  # Field name made lowercase.
-    specialization = models.CharField(db_column='Specialization', max_length=100, blank=True, null=True)  # Field name made lowercase.
-    yearsofexperience = models.IntegerField(db_column='YearsOfExperience', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
         managed = False

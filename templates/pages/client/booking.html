@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,8 @@
     <title>IVHEMMS — Book Service</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
 </head>
 
 <body class="vms-app">
@@ -23,6 +23,8 @@
         <div class="sidebar-heading">Services</div>
         <ul class="sidebar-menu">
             <li class="active"><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./book-check.html"><i class="bi bi-search"></i> Book Check</a></li>
+            <li><a href="./check-reports.html"><i class="bi bi-file-earmark-medical"></i> My Check Reports</a></li>
             <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
             <li><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
             <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
@@ -66,11 +68,11 @@
             <!-- Wizard Steps -->
             <div class="wizard-steps mb-4">
                 <div class="wizard-step active" id="step1Header">
-                    <div class="step-num">1</div> Service
+                    <div class="step-num">1</div> Vehicle
                 </div>
                 <div class="wizard-connector"></div>
                 <div class="wizard-step" id="step2Header">
-                    <div class="step-num">2</div> Vehicle
+                    <div class="step-num">2</div> Service
                 </div>
                 <div class="wizard-connector"></div>
                 <div class="wizard-step" id="step3Header">
@@ -84,26 +86,26 @@
 
             <div class="card border-0 rounded-4 p-4 shadow-sm glass-card">
                 <form id="appointmentForm">
-                    <!-- Step 1: Service Type -->
+                    <!-- Step 1: Vehicle -->
                     <div class="wizard-section" id="section1">
-                        <h6 class="fw-bold mb-3" style="color:#818cf8;"><i class="bi bi-tools me-2"></i>Select Service Type</h6>
-                        <div class="row g-2 mb-4" id="serviceCards">
-                            <div class="col-12 text-center py-4 text-muted small">Loading services...</div>
-                        </div>
-                        <input type="hidden" id="apptService" name="service">
-                        <div class="d-flex justify-content-end">
-                            <button type="button" class="btn btn-primary px-4 rounded-pill" onclick="nextStep(2)">Next <i class="bi bi-arrow-right ms-1"></i></button>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Vehicle -->
-                    <div class="wizard-section" id="section2" style="display:none;">
                         <h6 class="fw-bold mb-3" style="color:#818cf8;"><i class="bi bi-car-front me-2"></i>Select Vehicle</h6>
                         <div class="mb-4">
                             <select class="form-select form-select-lg rounded-3" id="apptVehicle" name="vehicle">
                                 <option value="">Loading vehicles...</option>
                             </select>
                         </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary px-4 rounded-pill" onclick="nextStep(2)">Next <i class="bi bi-arrow-right ms-1"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Service Type -->
+                    <div class="wizard-section" id="section2" style="display:none;">
+                        <h6 class="fw-bold mb-3" style="color:#818cf8;"><i class="bi bi-tools me-2"></i>Select Service Type</h6>
+                        <div class="row g-2 mb-4" id="serviceCards">
+                            <div class="col-12 text-center py-4 text-muted small">Loading services...</div>
+                        </div>
+                        <input type="hidden" id="apptService" name="service">
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" onclick="prevStep(1)"><i class="bi bi-arrow-left me-1"></i> Back</button>
                             <button type="button" class="btn btn-primary px-4 rounded-pill" onclick="nextStep(3)">Next <i class="bi bi-arrow-right ms-1"></i></button>
@@ -127,10 +129,6 @@
                                     <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-clock text-primary"></i></span>
                                     <select class="form-select border-start-0" id="apptTime" name="time"></select>
                                 </div>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Special Notes (Optional)</label>
-                                <textarea class="form-control" id="apptNotes" rows="3" placeholder="Any specific concerns..."></textarea>
                             </div>
                         </div>
                         <div class="d-flex justify-content-between">
@@ -170,8 +168,8 @@
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js?v=20260425_v11"></script>
-    <script src="../../assets/js/topbar-helper.js"></script>
+    <script src="../../../assets/js/main.js?v=20260425_v11"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
     <script>
         let currentStep = 1;
 
@@ -181,8 +179,7 @@
                 service: document.getElementById('apptService').value,
                 vehicleId: document.getElementById('apptVehicle').value,
                 date: document.getElementById('apptDate').value,
-                time: document.getElementById('apptTime').value,
-                notes: document.getElementById('apptNotes').value
+                time: document.getElementById('apptTime').value
             };
             sessionStorage.setItem('bookingWizardState', JSON.stringify(state));
         }
@@ -196,7 +193,6 @@
                 document.getElementById('apptVehicle').value = state.vehicleId || '';
                 document.getElementById('apptDate').value = state.date || '';
                 document.getElementById('apptTime').value = state.time || '';
-                document.getElementById('apptNotes').value = state.notes || '';
                 
                 if (state.service) {
                     // Re-highlight service card after they load (handled in DOMContentLoaded)
@@ -214,13 +210,23 @@
             saveWizardState();
         }
 
-        function nextStep(step) {
-            if (step === 2 && !document.getElementById('apptService').value) {
-                alert("Please select a service type first."); return;
+        async function nextStep(step) {
+            // Validating transition from Step 1 (Vehicle) to Step 2 (Service)
+            if (step === 2) {
+                const vehicleId = document.getElementById('apptVehicle').value;
+                if (!vehicleId) {
+                    alert("Please select a vehicle first."); 
+                    return;
+                }
             }
-            if (step === 3 && !document.getElementById('apptVehicle').value) {
-                alert("Please select a vehicle."); return;
+
+            // Validating transition from Step 2 (Service) to Step 3 (Date/Time)
+            if (step === 3 && !document.getElementById('apptService').value) {
+                alert("Please select a service type."); 
+                return;
             }
+
+            // Validating transition from Step 3 (Date/Time) to Step 4 (Confirm)
             if (step === 4) {
                 if(!document.getElementById('apptDate').value) { alert("Please select a date."); return; }
                 // Fill Review
@@ -248,18 +254,24 @@
             saveWizardState();
         }
 
-        const TIME_SLOTS = ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00"];
+        const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
 
         function validateTimes() {
             const dateInput = document.getElementById('apptDate');
             const timeSelect = document.getElementById('apptTime');
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            
+            // Use local date for accurate comparison
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const localToday = `${year}-${month}-${day}`;
+            
             const currentHour = now.getHours();
             const currentMin = now.getMinutes();
 
+            const isToday = dateInput.value === localToday;
             timeSelect.innerHTML = '';
-            const isToday = dateInput.value === todayStr;
 
             TIME_SLOTS.forEach(slot => {
                 const [h, m] = slot.split(':').map(Number);
@@ -279,6 +291,15 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             updateTopbarAvatar();
+            const urlParams = new URLSearchParams(window.location.search);
+            const navEntries = performance.getEntriesByType("navigation");
+            const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+            
+            // Clear state if coming from another page (not a reload) or explicitly requested via vehicle_id
+            if (!isReload || urlParams.has('vehicle_id')) {
+                sessionStorage.removeItem('bookingWizardState');
+            }
+
             loadWizardState(); // Load progress
             
             // Fix: Use local date for min validation
@@ -330,7 +351,10 @@
                     select.appendChild(opt);
                 });
                 const preselectId = new URLSearchParams(window.location.search).get('vehicle_id');
-                if (preselectId) select.value = preselectId;
+                if (preselectId) {
+                    select.value = preselectId;
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             }
         });
 
@@ -340,8 +364,7 @@
                 vehicle_id: document.getElementById('apptVehicle').value,
                 service_type: document.getElementById('apptService').value,
                 date: document.getElementById('apptDate').value,
-                time: document.getElementById('apptTime').value,
-                notes: document.getElementById('apptNotes').value
+                time: document.getElementById('apptTime').value
             };
             try {
                 const res = await fetch('/api/appointments', {

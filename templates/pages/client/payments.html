@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,8 @@
     <title>IVHEMMS — Payments</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <link rel="stylesheet" href="../../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../../assets/css/dashboard.css">
 </head>
 
 <body class="vms-app">
@@ -23,6 +23,8 @@
         <div class="sidebar-heading">Services</div>
         <ul class="sidebar-menu">
             <li><a href="./booking.html"><i class="bi bi-calendar-plus"></i> Book Service</a></li>
+            <li><a href="./book-check.html"><i class="bi bi-search"></i> Book Check</a></li>
+            <li><a href="./check-reports.html"><i class="bi bi-file-earmark-medical"></i> My Check Reports</a></li>
             <li><a href="./service-history.html"><i class="bi bi-clock-history"></i> Service History</a></li>
             <li class="active"><a href="./payments.html"><i class="bi bi-credit-card"></i> Payments</a></li>
             <li><a href="./chatbot.html"><i class="bi bi-robot"></i> AI Assistant</a></li>
@@ -109,6 +111,20 @@
                                 </select>
                             </div>
 
+                            <div id="loyaltyAlert" class="alert alert-success d-none rounded-4 border-0 shadow-sm mb-4" style="background: rgba(34, 197, 94, 0.1);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <i class="bi bi-gift-fill fs-4 text-success"></i>
+                                    <div>
+                                        <div class="fw-bold text-success">Loyalty Reward Available!</div>
+                                        <div class="small text-success opacity-75" id="loyaltyMsg">You've earned a special discount.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="paymentSummary" class="p-4 rounded-4 mb-4 d-none" style="background: rgba(67, 97, 238, 0.05); border: 1px dashed rgba(67, 97, 238, 0.2);">
+                                <!-- populated by JS -->
+                            </div>
+
 
                             <!-- Dynamic Card Fields -->
                             <div id="cardFields" class="p-4 rounded-4 mb-4" style="background: rgba(30, 41, 59, 0.03); border: 1px solid rgba(30, 41, 59, 0.1);">
@@ -170,39 +186,57 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/main.js?v=20260425_v11"></script>
-    <script src="../../assets/js/topbar-helper.js"></script>
+    <script src="../../../assets/js/main.js?v=20260425_v11"></script>
+    <script src="../../../assets/js/topbar-helper.js"></script>
     <script>
+        let userLoyaltyPoints = 0;
+        let outstandingInvoices = [];
 
         async function fetchInvoices() {
             try {
+                // Fetch User Points first
+                const meRes = await fetch('/api/me');
+                if (meRes.ok) {
+                    const meData = await meRes.json();
+                    userLoyaltyPoints = meData.LoyaltyPoints || 0;
+                    if (userLoyaltyPoints >= 30) {
+                        document.getElementById('loyaltyAlert').classList.remove('d-none');
+                        document.getElementById('loyaltyMsg').textContent = "Incredible! You have 30+ services. Your next Vehicle Check is FREE, or get 50% off any Service!";
+                    } else if (userLoyaltyPoints >= 20) {
+                        document.getElementById('loyaltyAlert').classList.remove('d-none');
+                        document.getElementById('loyaltyMsg').textContent = "Excellent! You have 20+ services. You get a 50% DISCOUNT on this payment!";
+                    }
+                }
+
                 const res = await fetch('/api/invoices');
                 if (res.ok) {
                     const data = await res.json();
-                    const outstanding = (data.unpaid || []).sort((a,b) => b.Invoice_ID - a.Invoice_ID);
-                    const paid = (data.paid_paginated && data.paid_paginated.paid_data) ? 
-                                 [...data.paid_paginated.paid_data].sort((a,b) => b.Invoice_ID - a.Invoice_ID) : [];
+                    outstandingInvoices = [...(data.check_unpaid || []), ...(data.unpaid || [])]
+                        .sort((a,b) => b.Invoice_ID - a.Invoice_ID);
+                        
+                    const paid = [...(data.check_paid || []), ...(data.paid_paginated && data.paid_paginated.paid_data ? data.paid_paginated.paid_data : [])]
+                        .sort((a,b) => b.Invoice_ID - a.Invoice_ID);
 
-                    document.getElementById('unpaidCount').textContent = outstanding.length;
+                    document.getElementById('unpaidCount').textContent = outstandingInvoices.length;
 
                     const outContainer = document.getElementById('outstandingInvoicesContainer');
-                    if (outstanding.length === 0) {
+                    if (outstandingInvoices.length === 0) {
                         outContainer.innerHTML = '<div class="p-5 text-center text-muted opacity-50 small">All clear! No outstanding bills.</div>';
                     } else {
-                        outContainer.innerHTML = outstanding.map(i => `
-                            <div class="invoice-item p-4 border-bottom border-light border-opacity-10 d-flex justify-content-between align-items-center" style="background: #fbbf24; color: #1e293b;">
+                        outContainer.innerHTML = outstandingInvoices.map(i => `
+                            <div class="invoice-item p-4 border-bottom border-light border-opacity-10 d-flex justify-content-between align-items-center hover-bg-light">
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:rgba(0,0,0,0.1);color:#1e293b;">
+                                    <div class="rounded-circle bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="width:40px;height:40px;color:var(--bs-warning);">
                                         <i class="bi bi-file-earmark-text"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold fs-5">INV-${i.Invoice_ID}</div>
-                                        <small class="fw-bold opacity-75">Due: ${i.DueDate || '-'}</small>
+                                        <div class="fw-bold fs-5 text-main">INV-${i.Invoice_ID} ${i.is_check ? '<span class="badge bg-danger ms-2 fs-6">Vehicle Check</span>' : '<span class="badge bg-primary ms-2 fs-6">Service</span>'}</div>
+                                        <small class="text-muted fw-medium">Due: ${i.DueDate || '-'}</small>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="fw-900 fs-4">$${i.Total}</div>
-                                    <span class="badge bg-dark bg-opacity-10 text-dark small fw-bold">Unpaid</span>
+                                    <div class="fw-900 fs-4 text-warning">$${i.Total}</div>
+                                    <span class="badge bg-warning bg-opacity-25 text-warning small fw-bold px-3 py-1 rounded-pill">Unpaid</span>
                                 </div>
                             </div>
                         `).join('');
@@ -219,7 +253,7 @@
                                         <i class="bi bi-check-circle"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold fs-5 text-main">INV-${i.Invoice_ID}</div>
+                                        <div class="fw-bold fs-5 text-main">INV-${i.Invoice_ID} ${i.Status === 'Check-Paid' ? '<span class="badge bg-danger ms-2">Vehicle Check</span>' : '<span class="badge bg-primary ms-2">Service</span>'}</div>
                                         <small class="text-muted fw-medium">${i.PaymentDate || '-'}</small>
                                     </div>
                                 </div>
@@ -232,10 +266,54 @@
                     }
 
                     const select = document.getElementById('invoiceSelect');
-                    select.innerHTML = '<option value="">Select outstanding invoice...</option>' + outstanding.map(i => `<option value="${i.Invoice_ID}">INV-${i.Invoice_ID} — $${i.Total}</option>`).join('');
+                    select.innerHTML = '<option value="">Select outstanding invoice...</option>' + outstandingInvoices.map(i => `<option value="${i.Invoice_ID}">INV-${i.Invoice_ID} — $${i.Total}</option>`).join('');
                 }
             } catch (err) { }
         }
+
+        document.getElementById('invoiceSelect').addEventListener('change', (e) => {
+            const val = e.target.value;
+            const summary = document.getElementById('paymentSummary');
+            if (!val) {
+                summary.classList.add('d-none');
+                return;
+            }
+
+            const inv = outstandingInvoices.find(i => i.Invoice_ID == val);
+            if (!inv) return;
+
+            summary.classList.remove('d-none');
+            let finalPrice = inv.Total;
+            let discountText = "";
+
+            if (inv.is_check && userLoyaltyPoints >= 30) {
+                finalPrice = 0;
+                discountText = "100% Loyalty Discount (Free Check)";
+            } else if (userLoyaltyPoints >= 20) {
+                finalPrice = inv.Total * 0.5;
+                discountText = "50% Loyalty Discount Applied";
+            }
+
+            if (discountText) {
+                summary.innerHTML = `
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="opacity-60">Original Amount:</span>
+                        <span class="text-decoration-line-through">$${inv.Total}</span>
+                    </div>
+                    <div class="d-flex justify-content-between fw-bold text-success">
+                        <span>${discountText}:</span>
+                        <span class="fs-4">$${finalPrice.toFixed(2)}</span>
+                    </div>
+                `;
+            } else {
+                summary.innerHTML = `
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>Amount to Pay:</span>
+                        <span class="fs-4">$${inv.Total}</span>
+                    </div>
+                `;
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchInvoices();

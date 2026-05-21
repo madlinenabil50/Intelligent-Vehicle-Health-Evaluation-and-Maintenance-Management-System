@@ -1,124 +1,284 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IVHEMMS — Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    
     <style>
-        body.auth-bg.vms-app {
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --primary-accent: #2563eb;
+            --secondary-accent: #0ea5e9;
+            --glow-color: rgba(37, 99, 235, 0.5);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #020617;
+            color: #f8fafc;
             min-height: 100vh;
-            margin: 0;
-            background: #0f172a;
-            background-image: linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.9)), url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1600&q=80');
+            overflow-x: hidden;
+        }
+
+        .hero-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background-image: url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1600&q=80');
             background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background-position: 35% center;
+            opacity: 1;
+            filter: brightness(0.8) contrast(1.1);
+            transform: scale(1.05);
+            animation: slowZoom 20s infinite alternate;
+        }
+
+        @keyframes slowZoom {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        .bg-mesh {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.4) 0%, #020617 90%);
+        }
+
+        .landing-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Inter', sans-serif;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .auth-card {
-            background: rgba(255, 255, 255, 0.03) !important;
-            backdrop-filter: blur(20px) saturate(160%) !important;
-            -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 32px !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-            color: #fff !important;
-            overflow: hidden;
+        .hero-section {
+            max-width: 1200px;
             width: 100%;
-            max-width: 480px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        @media (max-width: 991px) {
+            .hero-section {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 3rem;
+            }
+        }
+
+        .hero-content h1 {
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -2px;
+            color: #fff;
+        }
+
+        .hero-content h1 span {
+            background: linear-gradient(to right, #60a5fa, #2563eb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-portal {
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .auth-portal::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(to right, var(--primary-accent), var(--secondary-accent));
+        }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            display: block;
         }
 
         .form-control {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: #fff !important;
-            border-radius: 14px !important;
-            padding: 12px 18px !important;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 0.85rem 1.25rem;
+            color: #fff;
+            font-size: 0.95rem;
             transition: all 0.3s ease;
         }
 
         .form-control:focus {
-            background: rgba(255, 255, 255, 0.08) !important;
-            border-color: #4361ee !important;
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.15) !important;
-            color: #fff !important;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+            color: #fff;
         }
 
-        .btn-auth {
-            background: #4361ee;
+        .btn-premium {
+            background: linear-gradient(135deg, var(--primary-accent), #1e40af);
+            color: #fff;
             border: none;
-            padding: 14px;
             border-radius: 14px;
-            color: #fff;
+            padding: 1rem;
+            width: 100%;
             font-weight: 700;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
         }
 
-        .btn-auth:hover {
-            background: #3a56e4;
+        .btn-premium:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
+            box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 3rem;
+        }
+
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--primary-accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
             color: #fff;
         }
 
-        .brand-pill {
-            background: rgba(67, 97, 238, 0.1);
-            border: 1px solid rgba(67, 97, 238, 0.2);
-            color: #4361ee;
-            padding: 8px 20px;
-            border-radius: 999px;
-            font-weight: 800;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+        .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; color: #64748b; }
+        .auth-footer a { color: var(--primary-accent); text-decoration: none; font-weight: 600; }
+
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-decoration: none;
+            margin-top: -0.75rem;
+            margin-bottom: 1.5rem;
         }
+
+        /* Light Mode Overrides */
+        [data-theme="light"] {
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+        }
+        [data-theme="light"] body { background: #f1f5f9 !important; color: #0f172a !important; }
+        [data-theme="light"] .bg-mesh { background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 0%, rgba(241, 245, 249, 0.8) 100%) !important; }
+        [data-theme="light"] .hero-bg { opacity: 0.5 !important; filter: brightness(1.2) contrast(0.9) !important; }
+        [data-theme="light"] .auth-portal { background: var(--glass-bg) !important; color: #0f172a; border-color: rgba(0, 0, 0, 0.05); }
+        [data-theme="light"] .form-control { background: rgba(255, 255, 255, 0.8) !important; border-color: rgba(0, 0, 0, 0.1) !important; color: #0f172a !important; }
+        [data-theme="light"] .form-label { color: #475569; }
+        [data-theme="light"] .hero-content h1 { color: #0f172a; }
+        [data-theme="light"] .hero-content p { color: #475569; }
+        [data-theme="light"] .hero-content .fw-medium { color: #475569 !important; }
     </style>
 </head>
 
-<body class="auth-bg vms-app">
-    <div class="auth-card card fade-in">
-        <div class="card-body p-5">
-            <div class="brand-row mb-4 text-center">
-                <span class="brand-pill">
-                    <i class="bi bi-car-front-fill me-2"></i> IVHEMMS
-                </span>
+<body>
+    <div class="hero-bg"></div>
+    <div class="bg-mesh"></div>
+
+    <div class="landing-container">
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="brand-logo mb-5">
+                    <div class="logo-icon">
+                        <i class="bi bi-car-front-fill"></i>
+                    </div>
+                    <span>IVHEMMS</span>
+                </div>
+
+                <h1>Intelligence for <span>Modern Auto Care.</span></h1>
+                <p>The premium operating system for high-end vehicle maintenance. Streamline workflows, engage clients, and master your garage operations with AI-powered precision.</p>
+
+                <div class="d-flex flex-wrap gap-4 mt-5">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-primary fs-4"><i class="bi bi-check-circle-fill"></i></div>
+                        <span class="fw-medium">Cloud Based</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-primary fs-4"><i class="bi bi-check-circle-fill"></i></div>
+                        <span class="fw-medium">AI Diagnostics</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="text-primary fs-4"><i class="bi bi-check-circle-fill"></i></div>
+                        <span class="fw-medium">Premium UI</span>
+                    </div>
+                </div>
             </div>
 
-            <h2 class="fw-bold mb-2">Welcome Back</h2>
-            <p class="text-muted mb-4">Access your intelligent auto dashboard.</p>
+            <div class="auth-portal fade-in">
+                <h2 class="fw-bold mb-1">Welcome Back</h2>
+                <p class="text-muted small mb-4">Access your intelligent auto dashboard.</p>
 
-            <form id="loginForm" method="POST" action="/login">
-                <div class="mb-3">
-                    <label class="form-label small fw-bold text-uppercase opacity-75">Email Address</label>
-                    <input name="email" type="email" class="form-control" placeholder="name@example.com" required>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-uppercase opacity-75">Password</label>
-                    <input name="password" type="password" class="form-control" placeholder="••••••••" required>
-                </div>
+                <form id="loginForm" method="POST" action="/login">
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input name="email" type="email" class="form-control" placeholder="name@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input name="password" type="password" class="form-control" placeholder="••••••••" required>
+                    </div>
 
-                <button type="submit" class="btn btn-auth w-100 shadow-lg">
-                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Portal
-                </button>
+                    <a href="./forgot-password.html" class="forgot-link">Forgot password?</a>
 
-                <div class="text-center mt-4">
-                    <span class="text-muted small">Don't have an account?</span> 
-                    <a href="./register.html" class="text-primary fw-bold text-decoration-none small ms-1">Create Account</a>
-                </div>
-            </form>
+                    <button type="submit" class="btn-premium">
+                        Login to Portal
+                    </button>
+                    
+                    <div class="auth-footer">
+                        Don't have an account? <a href="./register.html">Create Account</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <script src="assets/js/main.js"></script>
+    <script src="../assets/js/main.js"></script>
 </body>
 
 </html>
