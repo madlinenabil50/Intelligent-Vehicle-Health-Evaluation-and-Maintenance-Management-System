@@ -143,7 +143,7 @@ GEMINI_API_KEY = "AIzaSyB4jihguOctU4DioJtQ50SO-wrqaEUqTjw"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 SMTP_USER = "ivhemms@gmail.com"
-SMTP_PASSWORD = "seuxaphgettkkdlp"
+SMTP_PASSWORD = "xnsmsoftneotdrkb"
 SYSTEM_NAME = "IVHEMMS"
 
 # Session Configuration
